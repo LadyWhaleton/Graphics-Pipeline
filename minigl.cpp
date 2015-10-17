@@ -45,6 +45,7 @@ void mglReadPixels(MGLsize width,
  */
 void mglBegin(MGLpoly_mode mode)
 {
+	// test
 }
 
 /**
