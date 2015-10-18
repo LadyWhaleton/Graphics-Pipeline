@@ -20,7 +20,8 @@ inline void MGL_ERROR(const char* description) {
     exit(1);
 }
 
-int mglMode = -1;
+int mgl_ShapeMode = -1;
+int mgl_MatrixMode = -1;
 
 // from lab 1
 void readFromFile(vector<float> &monkeyVector)
@@ -153,14 +154,11 @@ void mglReadPixels(MGLsize width,
 void mglBegin(MGLpoly_mode mode)
 {
 	// check what the mode is
-	if (mode == MGL_TRIANGLES)
-		mglMode = MGL_TRIANGLES;
+	if (mode == MGL_TRIANGLES || mode == MGL_QUADS)
+		mgl_shapeMode = mode;
 	
-	else if (mode == MGL_QUADS)
-		mglMode = MGL_QUADS;
-		
 	else
-		mglMode = -1;
+		mgl_ShapeMode = -1;
 }
 
 /**
@@ -168,7 +166,7 @@ void mglBegin(MGLpoly_mode mode)
  */
 void mglEnd()
 {
-	mglMode = -1;
+	mgl_ShapeMode = -1;
 }
 
 /**
@@ -197,6 +195,10 @@ void mglVertex3(MGLfloat x,
  */
 void mglMatrixMode(MGLmatrix_mode mode)
 {
+	if (mode == MGL_MODELVIEW || mode == MGL_PROJECTION)
+		mgl_MatrixMode = mode;
+	else
+		mgl_MatrixMode = -1;
 }
 
 /**
