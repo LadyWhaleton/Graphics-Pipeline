@@ -20,6 +20,8 @@ inline void MGL_ERROR(const char* description) {
     exit(1);
 }
 
+int mglMode = -1;
+
 // from lab 1
 void readFromFile(vector<float> &monkeyVector)
 {
@@ -152,14 +154,13 @@ void mglBegin(MGLpoly_mode mode)
 {
 	// check what the mode is
 	if (mode == MGL_TRIANGLES)
-	{
-		
-	}
+		mglMode = MGL_TRIANGLES;
 	
 	else if (mode == MGL_QUADS)
-	{
+		mglMode = MGL_QUADS;
 		
-	}
+	else
+		mglMode = -1;
 }
 
 /**
@@ -167,6 +168,7 @@ void mglBegin(MGLpoly_mode mode)
  */
 void mglEnd()
 {
+	mglMode = -1;
 }
 
 /**
