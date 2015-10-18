@@ -20,6 +20,111 @@ inline void MGL_ERROR(const char* description) {
     exit(1);
 }
 
+// from lab 1
+void readFromFile(vector<float> &monkeyVector)
+{
+    ifstream file;
+    file.open("monkey.raw");
+    float data;
+    
+    while (!file.eof())
+    {
+        file >> data;
+        monkeyVector.push_back(data/1.5);
+    }
+    // some reason it adds the last vertex twice
+    monkeyVector.pop_back();
+    
+    file.close();
+}
+
+// ==================from lab2, the DDA algorithm=======================
+void draw_line_shallow_pos(int x0, int x1, int y0, int y1, float m)
+{
+    float y = y0;
+    for(int x = x0; x < x1; ++x)
+    {
+        // compute successive y values
+        // cout << "shallow slope pos: " << m << endl;
+        set_pixel(x, y);
+        y = y + m;
+    }
+}
+
+void draw_line_shallow_neg(int x0, int x1, int y0, int y1, float m)
+{
+    float y = y0;
+    for(int x = x0; x > x1; --x)
+    {
+        // compute successive y values
+        // cout << "shallow slope neg: " << m << endl;
+        set_pixel(x, y);
+        y = y - m;
+    }
+}
+
+void draw_line_steep_pos(int x0, int x1, int y0, int y1, float m)
+{
+    float x = x0; 
+    // sample at dy = 1
+    for(int y = y0; y < y1; ++y)
+    {
+        // << "steep sleep pos: " << m << endl;
+        // compute success x values
+        set_pixel(x, y);
+        x = x + 1/m;            
+    }
+}
+
+void draw_line_steep_neg(int x0, int x1, int y0, int y1, float m)
+{
+    float x = x0; 
+    // sample at dy = 1
+    for(int y = y0; y > y1; --y)
+    {
+        //cout << "steep sleep neg: " << m << endl;
+        // compute success x values
+        set_pixel(x, y);
+        x = x - 1/m;            
+    }
+}
+
+void draw_line(int x0, int y0, int x1, int y1)
+{
+    //NOT WORKING CODE(PUT BETTER CODE HERE!!)
+    float dx = x1 - x0;
+    float dy = y1 - y0;
+    
+    if (dx == 0)
+    {
+        cout << "Error: Undefined slope!\n";
+        return;
+    }
+    
+    // calculate slope
+    float m = dy/dx;
+
+    // shallow slope
+    if (abs(m) <= 1)
+    {
+        if (dx < 0)
+            draw_line_shallow_neg(x0, x1, y0, y1, m);
+        else
+            draw_line_shallow_pos(x0, x1, y0, y1, m);
+    }
+    
+    // steep slope
+    else if (abs(m) > 1)
+    {
+        if (dy < 0)
+            draw_line_steep_neg(x0, x1, y0, y1, m);
+        else
+            draw_line_steep_pos(x0, x1, y0, y1, m);
+    }
+        
+    return;
+}
+// ===================== end of DDA stuff ============================
 
 /**
  * Read pixel data starting with the pixel at coordinates
@@ -45,7 +150,16 @@ void mglReadPixels(MGLsize width,
  */
 void mglBegin(MGLpoly_mode mode)
 {
-	// test
+	// check what the mode is
+	if (mode == MGL_TRIANGLES)
+	{
+		
+	}
+	
+	else if (mode == MGL_QUADS)
+	{
+		
+	}
 }
 
 /**
