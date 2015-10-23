@@ -3,13 +3,49 @@
  * -------------------------------
  * Implement miniGL here.
  * Do not use any additional files
+ * -------------------------------
+ * Name: Stephanie Tong
+ * Project 1: Simplified Rendering Pipeline
+ * Email: stong002@ucr.edu
+ * CS130: Computer Graphics
+ * Fall 2015
  */
 
 #include <cstdio>
 #include <cstdlib>
 #include "minigl.h"
 
+#include <iostream>
+#include <stack>
+#include <vector>
+
 using namespace std;
+
+// classes 
+class Matrix
+{
+	vector <MGLfloat*> matrix;
+	int dim;
+	
+	
+	// by default, it's the identity matrix
+	// dim indicates the dimensions of the matrix
+	Matrix()
+	{
+			
+	}
+	
+	
+};
+
+
+// Global variables I added
+
+int mgl_ShapeMode = -1;
+int mgl_MatrixMode = -1;
+
+stack <Matrix> MatrixStack;
+
 
 
 /**
@@ -20,25 +56,28 @@ inline void MGL_ERROR(const char* description) {
     exit(1);
 }
 
-int mgl_ShapeMode = -1;
-int mgl_MatrixMode = -1;
-
+/*
 // from lab 1
-void readFromFile(vector<float> &monkeyVector)
+
+// set pixel (x,y) in framebuffer to color col, where
+// col is a float array of three values between 0 and 1
+// which specify the amount of red, green, and blue to mix (e.g.
+// RED: (1,0,0) GREEN: (0,1,0) BLUE: (0,0,1) 
+// YELLOW: (1,1,0) MAGENTA: (1,0,1) CYAN: (0,1,1)
+// )
+//
+void set_pixel(int x, int y, float col[3])
 {
-    ifstream file;
-    file.open("monkey.raw");
-    float data;
-    
-    while (!file.eof())
-    {
-        file >> data;
-        monkeyVector.push_back(data/1.5);
-    }
-    // some reason it adds the last vertex twice
-    monkeyVector.pop_back();
-    
-    file.close();
+    // write a 1x1 block of pixels of color col to framebuffer
+    // coordinates (x, y)
+    glRasterPos2i(x, y);
+    glDrawPixels(1, 1, GL_RGB, GL_FLOAT, col);
+}
+
+void set_pixel(int x, int y)
+{
+    float col[] = { 1.0, 1.0, 1.0 };
+    set_pixel(x,y,col);
 }
 
 // ==================from lab2, the DDA algorithm=======================
@@ -127,6 +166,8 @@ void draw_line(int x0, int y0, int x1, int y1)
         
     return;
 }
+*/
+
 // ===================== end of DDA stuff ============================
 
 /**
@@ -145,6 +186,25 @@ void mglReadPixels(MGLsize width,
                    MGLsize height,
                    MGLpixel *data)
 {
+	// data contains buffer of coordinates for each pixel on screen
+	// data is an 1D array containing x,y coordinates of the screen
+	// for ex: starting from bottom left. 
+	// data[0] contains the point (0,0),
+	// data[1] contains the point (1,0),
+	// data[2] contains the point (2,0), etc.
+	// need to mgl_set_COLOR for each pixel
+	
+	// double for loop.
+	// for y < height
+	// for x < width
+	
+	// MGLpixel color
+	// set red,blue,green
+	// data[y*width+x] = color
+
+	// you times y by width to go up rows and add x to indicate which
+	// row & column of the screen
+	
 }
 
 /**
@@ -154,8 +214,8 @@ void mglReadPixels(MGLsize width,
 void mglBegin(MGLpoly_mode mode)
 {
 	// check what the mode is
-	if (mode == MGL_TRIANGLES || mode == MGL_QUADS)
-		mgl_shapeMode = mode;
+	if (mgl_ShapeMode == MGL_TRIANGLES || mgl_ShapeMode == MGL_QUADS)
+		mgl_ShapeMode = mode;
 	
 	else
 		mgl_ShapeMode = -1;
@@ -178,6 +238,7 @@ void mglEnd()
 void mglVertex2(MGLfloat x,
                 MGLfloat y)
 {
+
 }
 
 /**
