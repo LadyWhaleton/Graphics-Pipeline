@@ -18,39 +18,66 @@
 #include <iostream>
 #include <stack>
 #include <vector>
+#include "math.h"
 
 using namespace std;
 
-// classes 
+
+// classes I created
 class Matrix
 {
-	vector <MGLfloat*> matrix;
+	// variables
+	public:
+	MGLfloat matrix[4][4];
+	
 	
 	// by default, it's the identity matrix
 	Matrix()
 	{
-		setRows(0,0,0);
+		initMatrix (0,0,0);
 	}
 	
 	Matrix(MGLfloat x, MGLfloat y, MGLfloat z)
 	{
-		setRows(x,y,z);
+		initMatrix (x,y,z);
 	}
 	
-	void setRows(MGLfloat x, MGLfloat y, MGLfloat z)
-	{
-		MGLfloat Row1[4] = {1, 0, 0, x};
-		MGLfloat Row2[4] = {0, 1, 0, y};
-		MGLfloat Row3[4] = {0, 0, 1, z};
-		MGLfloat Row4[4] = {0, 0, 0, 1};
+	private:
+	void initMatrix (MGLfloat x, MGLfloat y, MGLfloat z)
+	{	
+		// set diagonals
+		matrix[0][0] = 1;
+		matrix[1][1] = 1;
+		matrix[2][2] = 1;
+		matrix[3][3] = 1;
 		
-		matrix.push_back(Row1);
-		matrix.push_back(Row2);
-		matrix.push_back(Row3);
-		matrix.push_back(Row4);
+		// set the x, y, z coordinate
+		matrix[0][3] = x;
+		matrix[1][3] = y;
+		matrix[2][3] = z;	
 	}
+		
+};
+
+/*
+class Vertex
+{
+	public:
+	MGLfloat x, y, z;
 	
+	Vertex() :x(0), y(0), z(0) {}
+	Vertex() :x(x), y(y), z(z) {}
+};
+*/
+
+// pixel contains the coordinates, 
+class Pixel
+{
+	MGLfloat x, y;
 	
+	Pixel(MGLfloat X, MGLfloat Y)
+		: x(X), y(Y)
+	{}
 };
 
 
@@ -59,10 +86,11 @@ class Matrix
 int mgl_ShapeMode = -1;
 int mgl_MatrixMode = -1;
 
-MGLpixel color;
+MGLint RGB[3];
+MGLpixel color; // MGLpixel is unsigned int
+
+vector<Pixel> frameBuffer;
 stack <Matrix> MatrixStack;
-
-
 
 /**
  * Standard macro to report errors
@@ -103,7 +131,6 @@ void draw_line_shallow_pos(int x0, int x1, int y0, int y1, float m)
     for(int x = x0; x < x1; ++x)
     {
         // compute successive y values
-        // cout << "shallow slope pos: " << m << endl;
         set_pixel(x, y);
         y = y + m;
     }
@@ -115,7 +142,6 @@ void draw_line_shallow_neg(int x0, int x1, int y0, int y1, float m)
     for(int x = x0; x > x1; --x)
     {
         // compute successive y values
-        // cout << "shallow slope neg: " << m << endl;
         set_pixel(x, y);
         y = y - m;
     }
@@ -127,9 +153,8 @@ void draw_line_steep_pos(int x0, int x1, int y0, int y1, float m)
     // sample at dy = 1
     for(int y = y0; y < y1; ++y)
     {
-        // << "steep sleep pos: " << m << endl;
         // compute success x values
-        set_pixel(x, y);
+        set_pixel(x, y); // store this points into array
         x = x + 1/m;            
     }
 }
@@ -140,7 +165,6 @@ void draw_line_steep_neg(int x0, int x1, int y0, int y1, float m)
     // sample at dy = 1
     for(int y = y0; y > y1; --y)
     {
-        //cout << "steep sleep neg: " << m << endl;
         // compute success x values
         set_pixel(x, y);
         x = x - 1/m;            
@@ -149,13 +173,13 @@ void draw_line_steep_neg(int x0, int x1, int y0, int y1, float m)
 
 void draw_line(int x0, int y0, int x1, int y1)
 {
-    //NOT WORKING CODE(PUT BETTER CODE HERE!!)
+
     float dx = x1 - x0;
     float dy = y1 - y0;
     
     if (dx == 0)
     {
-        cout << "Error: Undefined slope!\n";
+        //Error: Undefined slope
         return;
     }
     
@@ -213,9 +237,9 @@ void mglReadPixels(MGLsize width,
 	// MGLpixel color
 	// set red,blue,green
 	// data[y*width+x] = color
-	MGL_SET_RED(color, 255);
-	MGL_SET_BLUE(color, 255);
-	MGL_SET_GREEN(color, 255);
+	MGL_SET_RED(color, RGB[0]);
+	MGL_SET_BLUE(color, RGB[1]);
+	MGL_SET_GREEN(color, RGB[2]);
 	
 	data[650] = color;
 	
@@ -227,7 +251,7 @@ void mglReadPixels(MGLsize width,
 	// row & column of the screen
 	
 	// this function is called in main. it colors all of the pixels
-	// that you want it to. Need to store these pixels with the 
+	// that you want it to all at once. Need to store these pixels with the 
 	// corresponding color somehow
 	
 }
@@ -263,7 +287,7 @@ void mglEnd()
 void mglVertex2(MGLfloat x,
                 MGLfloat y)
 {
-
+	//Matrix Mat2D(x, y, 0);
 }
 
 /**
@@ -274,6 +298,8 @@ void mglVertex3(MGLfloat x,
                 MGLfloat y,
                 MGLfloat z)
 {
+	//Matrix Mat3D(x, y, z);
+	//MatrixStack.push(Mat3D);
 }
 
 /**
@@ -407,4 +433,7 @@ void mglColor(MGLbyte red,
               MGLbyte green,
               MGLbyte blue)
 {
+	RGB[0] = red;
+	RGB[1] = green;
+	RGB[2] = blue;
 }
