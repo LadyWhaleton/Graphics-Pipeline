@@ -93,7 +93,6 @@ vector<Pixel> frameBuffer;
 
 stack <Matrix> ModelMatrixStack;
 stack <Matrix> ProjMatrixStack;
-stack <Matrix> currMatrix;
 
 /**
  * Standard macro to report errors
@@ -322,6 +321,11 @@ void mglMatrixMode(MGLmatrix_mode mode)
 /**
  * Push a copy of the current matrix onto the stack for the
  * current matrix mode.
+ * 
+ * glPushMatrix(); and glPopMatrix(); are used when you want to transform
+ * an object, such as scaling, translating, or rotating. 
+ * glPushMatrix(); is placed before the code to transform the object and
+ * glPopMatrix(); is placed after the code to draw the object.
  */
 void mglPushMatrix()
 {
@@ -329,12 +333,12 @@ void mglPushMatrix()
 	// a specific stack. So you don't accidentally modify the projection matrix
 	// when you wanted to modify your shape/object
 	
-	
+	// push a copy of the top matrix
 	if (mgl_MatrixMode == MGL_MODELVIEW)
-		ModelMatrixStack.push(currMatrix.top());
+		ModelMatrixStack.push(ModelMatrixStack.top());
 	
 	else if (mgl_MatrixMode == MGL_PROJECTION)
-		ProjMatrixStack.push(currMatrix.top());
+		ProjMatrixStack.push(ProjMatrixStack.top());
 }
 
 /**
@@ -361,13 +365,14 @@ void mglLoadIdentity()
 {
 	// sets the matrix currently on the top of the stack to the identity matrix
 	// this function seems to appear after mglModelView calls
-
+	
+	/*
 	if (!currMatrix.empty())
 		currMatrix.pop();
 			
 	Matrix Identity();
 	currMatrix.push(Identity);
-
+	*/
 }
 
 /**
@@ -384,10 +389,12 @@ void mglLoadIdentity()
  */
 void mglLoadMatrix(const MGLfloat *matrix)
 {
+	/*
 	if (!currMatrix.empty())
 		currMatrix.pop();
 			
 	currMatrix.push(matrix);
+	*/
 }
 
 /**
