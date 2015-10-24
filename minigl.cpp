@@ -29,21 +29,22 @@ class Matrix
 	// variables
 	public:
 	MGLfloat matrix[4][4];
+	MGLfloat x, y, z;
 	
 	
 	// by default, it's the identity matrix
 	Matrix()
 	{
-		initMatrix (0,0,0);
+		initMatrix (0, 0, 0);
 	}
 	
-	Matrix(MGLfloat x, MGLfloat y, MGLfloat z)
+	Matrix(MGLfloat X, MGLfloat Y, MGLfloat Z)
 	{
-		initMatrix (x,y,z);
+		initMatrix (X, Y, Z);
 	}
 	
 	private:
-	void initMatrix (MGLfloat x, MGLfloat y, MGLfloat z)
+	void initMatrix (MGLfloat X, MGLfloat Y, MGLfloat Z)
 	{	
 		// set diagonals
 		matrix[0][0] = 1;
@@ -52,23 +53,23 @@ class Matrix
 		matrix[3][3] = 1;
 		
 		// set the x, y, z coordinate
-		matrix[0][3] = x;
-		matrix[1][3] = y;
-		matrix[2][3] = z;	
+		matrix[0][3] = X; x = X;
+		matrix[1][3] = Y; y = Y;
+		matrix[2][3] = Z; z = Z;	
 	}
 		
 };
 
-/*
+
 class Vertex
 {
 	public:
 	MGLfloat x, y, z;
 	
 	Vertex() :x(0), y(0), z(0) {}
-	Vertex() :x(x), y(y), z(z) {}
+	Vertex(MGLfloat X, MGLfloat Y, MGLfloat Z) :x(X), y(Y), z(Z) {}
 };
-*/
+
 
 // pixel contains the coordinates, 
 class Pixel
@@ -88,9 +89,11 @@ int mgl_MatrixMode = -1;
 
 MGLint RGB[3];
 MGLpixel color; // MGLpixel is unsigned int
-
 vector<Pixel> frameBuffer;
-stack <Matrix> MatrixStack;
+
+stack <Matrix> ModelMatrixStack;
+stack <Matrix> ProjMatrixStack;
+stack <Matrix> currMatrix;
 
 /**
  * Standard macro to report errors
@@ -287,7 +290,9 @@ void mglEnd()
 void mglVertex2(MGLfloat x,
                 MGLfloat y)
 {
-	//Matrix Mat2D(x, y, 0);
+	Matrix Mat2D(x, y, 0);
+	ModelMatrixStack.push(Mat2D);
+
 }
 
 /**
@@ -298,8 +303,9 @@ void mglVertex3(MGLfloat x,
                 MGLfloat y,
                 MGLfloat z)
 {
-	//Matrix Mat3D(x, y, z);
-	//MatrixStack.push(Mat3D);
+	Matrix Mat3D(x, y, z);
+	ModelMatrixStack.push(Mat3D);
+
 }
 
 /**
@@ -319,6 +325,16 @@ void mglMatrixMode(MGLmatrix_mode mode)
  */
 void mglPushMatrix()
 {
+	// depending on which mode you're on, you want to push the matrix onto
+	// a specific stack. So you don't accidentally modify the projection matrix
+	// when you wanted to modify your shape/object
+	
+	
+	if (mgl_MatrixMode == MGL_MODELVIEW)
+		ModelMatrixStack.push(currMatrix.top());
+	
+	else if (mgl_MatrixMode == MGL_PROJECTION)
+		ProjMatrixStack.push(currMatrix.top());
 }
 
 /**
@@ -327,6 +343,15 @@ void mglPushMatrix()
  */
 void mglPopMatrix()
 {
+	// depending on which mode you're on, you want to pop the matrix from
+	// a specific stack. So you don't accidentally pop the projection matrix
+	// when you wanted to pop your shape/object
+	if (mgl_MatrixMode == MGL_MODELVIEW)
+		ModelMatrixStack.pop();
+	
+	else if (mgl_MatrixMode == MGL_PROJECTION)
+		ProjMatrixStack.pop();
+
 }
 
 /**
@@ -334,6 +359,15 @@ void mglPopMatrix()
  */
 void mglLoadIdentity()
 {
+	// sets the matrix currently on the top of the stack to the identity matrix
+	// this function seems to appear after mglModelView calls
+
+	if (!currMatrix.empty())
+		currMatrix.pop();
+			
+	Matrix Identity();
+	currMatrix.push(Identity);
+
 }
 
 /**
@@ -350,6 +384,10 @@ void mglLoadIdentity()
  */
 void mglLoadMatrix(const MGLfloat *matrix)
 {
+	if (!currMatrix.empty())
+		currMatrix.pop();
+			
+	currMatrix.push(matrix);
 }
 
 /**
@@ -366,6 +404,7 @@ void mglLoadMatrix(const MGLfloat *matrix)
  */
 void mglMultMatrix(const MGLfloat *matrix)
 {
+	// [ matrix ] [currMatrix]
 }
 
 /**
