@@ -25,14 +25,29 @@ using namespace std;
 class Matrix
 {
 	vector <MGLfloat*> matrix;
-	int dim;
-	
 	
 	// by default, it's the identity matrix
-	// dim indicates the dimensions of the matrix
 	Matrix()
 	{
-			
+		setRows(0,0,0);
+	}
+	
+	Matrix(MGLfloat x, MGLfloat y, MGLfloat z)
+	{
+		setRows(x,y,z);
+	}
+	
+	void setRows(MGLfloat x, MGLfloat y, MGLfloat z)
+	{
+		MGLfloat Row1[4] = {1, 0, 0, x};
+		MGLfloat Row2[4] = {0, 1, 0, y};
+		MGLfloat Row3[4] = {0, 0, 1, z};
+		MGLfloat Row4[4] = {0, 0, 0, 1};
+		
+		matrix.push_back(Row1);
+		matrix.push_back(Row2);
+		matrix.push_back(Row3);
+		matrix.push_back(Row4);
 	}
 	
 	
@@ -44,6 +59,7 @@ class Matrix
 int mgl_ShapeMode = -1;
 int mgl_MatrixMode = -1;
 
+MGLpixel color;
 stack <Matrix> MatrixStack;
 
 
@@ -192,18 +208,27 @@ void mglReadPixels(MGLsize width,
 	// data[0] contains the point (0,0),
 	// data[1] contains the point (1,0),
 	// data[2] contains the point (2,0), etc.
-	// need to mgl_set_COLOR for each pixel
 	
-	// double for loop.
-	// for y < height
-	// for x < width
 	
 	// MGLpixel color
 	// set red,blue,green
 	// data[y*width+x] = color
+	MGL_SET_RED(color, 255);
+	MGL_SET_BLUE(color, 255);
+	MGL_SET_GREEN(color, 255);
+	
+	data[650] = color;
+	
+	// double for loop.
+	// for y < height
+	// for x < width
 
 	// you times y by width to go up rows and add x to indicate which
 	// row & column of the screen
+	
+	// this function is called in main. it colors all of the pixels
+	// that you want it to. Need to store these pixels with the 
+	// corresponding color somehow
 	
 }
 
