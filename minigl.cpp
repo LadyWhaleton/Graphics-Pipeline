@@ -43,6 +43,19 @@ class Matrix
 		initMatrix (X, Y, Z);
 	}
 	
+	Matrix& operator= (const Matrix & rhs)
+	{
+		// this is for avoiding assignment of the same object
+		if (this != &rhs) 
+		{
+			for (int row = 0; row < 4; ++row)
+				for (int col = 0; col < 4; ++col)
+					matrix[row][col] = rhs.matrix[row][col];
+		}
+		
+		return *this;
+	}
+	
 	private:
 	void initMatrix (MGLfloat X, MGLfloat Y, MGLfloat Z)
 	{	
@@ -59,6 +72,15 @@ class Matrix
 	}
 		
 };
+
+ostream& operator<< (ostream& os, const Matrix& m)
+{
+	for (int row = 0; row < 4; ++row)
+		for (int col = 0; col < 4; ++col)
+			os << m.matrix[row][col] << ' ';
+		os << '\n';
+	return os;
+}
 
 
 class Vertex
@@ -93,6 +115,7 @@ vector<Pixel> frameBuffer;
 
 stack <Matrix> ModelMatrixStack;
 stack <Matrix> ProjMatrixStack;
+Matrix currMatrix;
 
 /**
  * Standard macro to report errors
