@@ -43,7 +43,7 @@ class Matrix
 		initMatrix (X, Y, Z);
 	}
 	
-	Matrix& operator= (const Matrix & rhs)
+	Matrix& operator= (const Matrix& rhs)
 	{
 		// this is for avoiding assignment of the same object
 		if (this != &rhs) 
@@ -55,6 +55,23 @@ class Matrix
 		
 		return *this;
 	}
+	
+	friend ostream& operator<< (ostream& os, const Matrix& m)
+	{
+		for (int row = 0; row < 4; ++row)
+			for (int col = 0; col < 4; ++col)
+				os << m.matrix[row][col] << ' ';
+			os << '\n';
+		return os;
+	}
+	
+	void clearMatrix()
+	{
+		for (int row = 0; row < 4; ++row)
+			for (int col = 0; col < 4; ++col)
+				matrix[row][col] = 0;
+	}
+		
 	
 	private:
 	void initMatrix (MGLfloat X, MGLfloat Y, MGLfloat Z)
@@ -70,17 +87,8 @@ class Matrix
 		matrix[1][3] = Y; y = Y;
 		matrix[2][3] = Z; z = Z;	
 	}
-		
-};
 
-ostream& operator<< (ostream& os, const Matrix& m)
-{
-	for (int row = 0; row < 4; ++row)
-		for (int col = 0; col < 4; ++col)
-			os << m.matrix[row][col] << ' ';
-		os << '\n';
-	return os;
-}
+};
 
 
 class Vertex
@@ -358,10 +366,10 @@ void mglPushMatrix()
 	
 	// push a copy of the top matrix
 	if (mgl_MatrixMode == MGL_MODELVIEW)
-		ModelMatrixStack.push(ModelMatrixStack.top());
+		ModelMatrixStack.push(currMatrix);
 	
 	else if (mgl_MatrixMode == MGL_PROJECTION)
-		ProjMatrixStack.push(ProjMatrixStack.top());
+		ProjMatrixStack.push(currMatrix);
 }
 
 /**
@@ -389,13 +397,9 @@ void mglLoadIdentity()
 	// sets the matrix currently on the top of the stack to the identity matrix
 	// this function seems to appear after mglModelView calls
 	
-	/*
-	if (!currMatrix.empty())
-		currMatrix.pop();
-			
-	Matrix Identity();
-	currMatrix.push(Identity);
-	*/
+	
+	Matrix Identity;
+	currMatrix = Identity;
 }
 
 /**
@@ -410,14 +414,9 @@ void mglLoadIdentity()
  *
  * where ai is the i'th entry of the array.
  */
-void mglLoadMatrix(const MGLfloat *matrix)
+void mglLoadMatrix(const Matrix& m)
 {
-	/*
-	if (!currMatrix.empty())
-		currMatrix.pop();
-			
-	currMatrix.push(matrix);
-	*/
+	currMatrix = m;
 }
 
 /**
@@ -432,9 +431,18 @@ void mglLoadMatrix(const MGLfloat *matrix)
  *
  * where ai is the i'th entry of the array.
  */
-void mglMultMatrix(const MGLfloat *matrix)
+void mglMultMatrix(const Matrix& m)
 {
+	Matrix result;
+	result.clearMatrix();
+	
 	// [ matrix ] [currMatrix]
+	for (int i = 0; i < 4; ++i)
+		for (int j = 0; j < 4; ++j)
+			for (int k = 0; k < 4; ++k)
+				result.matrix[i][j] += currMatrix.matrix[i][k] * m.matrix[k][j];
+				
+	currMatrix = result;
 }
 
 /**
