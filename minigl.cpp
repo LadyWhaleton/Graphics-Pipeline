@@ -29,8 +29,6 @@ class Matrix
 	// variables
 	public:
 	MGLfloat matrix[4][4];
-	MGLfloat x, y, z;
-	
 	
 	// by default, it's the identity matrix
 	Matrix()
@@ -121,6 +119,7 @@ MGLint RGB[3];
 MGLpixel color; // MGLpixel is unsigned int
 vector<Pixel> frameBuffer;
 
+vector<Vertex> vertexList;
 stack <Matrix> ModelMatrixStack;
 stack <Matrix> ProjMatrixStack;
 Matrix currMatrix;
@@ -320,8 +319,8 @@ void mglEnd()
 void mglVertex2(MGLfloat x,
                 MGLfloat y)
 {
-	Matrix Mat2D(x, y, 0);
-	ModelMatrixStack.push(Mat2D);
+	Vertex Vec2(x, y, 0);
+	vertexList.push_back(Vec2);
 
 }
 
@@ -333,8 +332,8 @@ void mglVertex3(MGLfloat x,
                 MGLfloat y,
                 MGLfloat z)
 {
-	Matrix Mat3D(x, y, z);
-	ModelMatrixStack.push(Mat3D);
+	Vertex Vec3(x, y, z);
+	vertexList.push_back(Vec3);
 
 }
 
@@ -381,10 +380,10 @@ void mglPopMatrix()
 	// depending on which mode you're on, you want to pop the matrix from
 	// a specific stack. So you don't accidentally pop the projection matrix
 	// when you wanted to pop your shape/object
-	if (mgl_MatrixMode == MGL_MODELVIEW)
+	if (mgl_MatrixMode == MGL_MODELVIEW && !ModelMatrixStack.empty())
 		ModelMatrixStack.pop();
 	
-	else if (mgl_MatrixMode == MGL_PROJECTION)
+	else if (mgl_MatrixMode == MGL_PROJECTION && !ProjMatrixStack.empty())
 		ProjMatrixStack.pop();
 
 }
@@ -453,6 +452,8 @@ void mglTranslate(MGLfloat x,
                   MGLfloat y,
                   MGLfloat z)
 {
+	Matrix t; 
+	t.clearMatrix();
 }
 
 /**
@@ -465,6 +466,7 @@ void mglRotate(MGLfloat angle,
                MGLfloat y,
                MGLfloat z)
 {
+	Matrix r;
 }
 
 /**
@@ -475,6 +477,7 @@ void mglScale(MGLfloat x,
               MGLfloat y,
               MGLfloat z)
 {
+	Matrix s;
 }
 
 /**
