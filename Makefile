@@ -14,6 +14,12 @@ minigl.o: minigl.cpp minigl.h
 
 main.o: main.cpp minigl.h
 	$(CXX) $(CXXFLAGS) $< -o $@
+	
+run:
+	./minigl
+
+test:
+	g++ testmain.cpp -o test
 
 clean:
 	$(RM) *~ *.bak *.o $(EXEC)

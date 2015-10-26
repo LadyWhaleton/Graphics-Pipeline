@@ -33,11 +33,13 @@ class Matrix
 	// by default, it's the identity matrix
 	Matrix()
 	{
+		clearMatrix();
 		initMatrix (0, 0, 0);
 	}
 	
 	Matrix(MGLfloat X, MGLfloat Y, MGLfloat Z)
 	{
+		clearMatrix();
 		initMatrix (X, Y, Z);
 	}
 	
@@ -57,10 +59,13 @@ class Matrix
 	friend ostream& operator<< (ostream& os, const Matrix& m)
 	{
 		for (int row = 0; row < 4; ++row)
+		{
 			for (int col = 0; col < 4; ++col)
-				os << m.matrix[row][col] << ' ';
-			os << '\n';
+				os << m.matrix[row][col] << " ";
+			os << "\n";
+		}
 		return os;
+		
 	}
 	
 	void clearMatrix()
@@ -81,9 +86,9 @@ class Matrix
 		matrix[3][3] = 1;
 		
 		// set the x, y, z coordinate
-		matrix[0][3] = X; x = X;
-		matrix[1][3] = Y; y = Y;
-		matrix[2][3] = Z; z = Z;	
+		matrix[0][3] = X; 
+		matrix[1][3] = Y; 
+		matrix[2][3] = Z;
 	}
 
 };
