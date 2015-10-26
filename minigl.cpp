@@ -479,12 +479,31 @@ void mglTranslate(MGLfloat x,
  * for a rotation of (angle) degrees about the vector
  * from the origin to the point (x, y, z).
  */
+ // http://www.dei.isep.ipp.pt/~matos/cg/docs/manual/glRotate.3G.html
 void mglRotate(MGLfloat angle,
                MGLfloat x,
                MGLfloat y,
                MGLfloat z)
 {
-	Matrix r;
+	MGLfloat s = sin(angle * M_PI / 180);
+	MGLfloat c = cos(angle * M_PI / 180);	
+	
+	Matrix r(0, 0, 0);
+	
+	r.matrix[0][0] = x*x * (1 - c) + c;
+	r.matrix[0][1] = x*y * (1 - c) - z*s;
+	r.matrix[0][2] = x*z * (1 - c) + y*s;
+	
+	r.matrix[1][0] = y*x * (1 - c) + z*s;
+	r.matrix[1][1] = y*y * (1 - c) + c;
+	r.matrix[1][2] = y*z * (1 - c) - x*s;
+	
+	r.matrix[2][0] = x*z * (1 - c) - y*s;
+	r.matrix[2][1] = y*z * (1 - c) + x*s;
+	r.matrix[2][2] = z*z * (1 - c) + c;
+	
+	mglMultMatrix(r);
+	
 }
 
 /**
