@@ -142,6 +142,12 @@ inline void MGL_ERROR(const char* description) {
     exit(1);
 }
 
+// convert world to screen coordinates
+void convert2ScreenCoord()
+{
+	
+}
+
 /*
 // from lab 1
 
@@ -152,6 +158,7 @@ inline void MGL_ERROR(const char* description) {
 // YELLOW: (1,1,0) MAGENTA: (1,0,1) CYAN: (0,1,1)
 // )
 //
+// convert to screen coordinates 
 void set_pixel(int x, int y, float col[3])
 {
     // write a 1x1 block of pixels of color col to framebuffer
@@ -494,6 +501,8 @@ void mglScale(MGLfloat x,
  * Multiply the current matrix by the perspective matrix
  * with the given clipping plane coordinates.
  */
+ // this handles the 3D stuff for a camera so objects in a scene
+ // apear to tilt 
 void mglFrustum(MGLfloat left,
                 MGLfloat right,
                 MGLfloat bottom,
@@ -507,6 +516,9 @@ void mglFrustum(MGLfloat left,
  * Multiply the current matrix by the orthographic matrix
  * with the given clipping plane coordinates.
  */
+// ortho positions your camera relative to the center of the screen
+// https://www.opengl.org/sdk/docs/man2/xhtml/glOrtho.xml
+// http://stackoverflow.com/questions/2571402/explain-the-usage-of-glortho
 void mglOrtho(MGLfloat left,
               MGLfloat right,
               MGLfloat bottom,
@@ -514,6 +526,26 @@ void mglOrtho(MGLfloat left,
               MGLfloat near,
               MGLfloat far)
 {
+	MGLfloat t_x, t_y, t_z, x, y, z;
+	
+	x = 2/(right - left);
+	y = 2/(top - bottom);
+	z = 2/(far - near);
+	
+	t_x = -(right + left)/(right - left);
+	t_y = -(top + bottom)/(top-bottom);
+	t_z = -(far + near)/(far - near);
+	
+	Matrix ortho;
+	ortho.matrix[0][0] = x;
+	ortho.matrix[1][1] = y;
+	ortho.matrix[2][2] = z;
+	
+	ortho.matrix[0][3] = t_x;
+	ortho.matrix[1][3] = t_y;
+	ortho.matrix[2][3] = t_z;
+	
+	currMatrix = ortho; 
 }
 
 /**
