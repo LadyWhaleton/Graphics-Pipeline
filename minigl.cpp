@@ -515,6 +515,12 @@ void mglScale(MGLfloat x,
               MGLfloat z)
 {
 	Matrix s;
+	
+	s.matrix[0][0] = x;
+	s.matrix[1][1] = y;
+	s.matrix[2][2] = z;
+	
+	mglMultMatrix(s);
 }
 
 /**
