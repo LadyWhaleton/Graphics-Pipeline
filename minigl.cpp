@@ -503,6 +503,7 @@ void mglScale(MGLfloat x,
  */
  // this handles the 3D stuff for a camera so objects in a scene
  // apear to tilt 
+ // https://www.opengl.org/sdk/docs/man2/xhtml/glFrustum.xml
 void mglFrustum(MGLfloat left,
                 MGLfloat right,
                 MGLfloat bottom,
@@ -510,6 +511,28 @@ void mglFrustum(MGLfloat left,
                 MGLfloat near,
                 MGLfloat far)
 {
+	MGLfloat x, y, A, B, C, D;
+	
+	x = (2 * near)/(right - left);
+	y = (2 * near)/(top - bottom);
+	A = (right + left);
+	B = (top + bottom)/(top - bottom);
+	C = -(far + near)/(far - near);
+	D = -(2 * far)/(far - near);
+	
+	Matrix frustrum(0, 0, D);
+	
+	frustrum.matrix[0][0] = x;
+	frustrum.matrix[1][1] = y;
+	
+	frustrum.matrix[0][2] = A;
+	frustrum.matrix[1][2] = B;
+	frustrum.matrix[2][2] = C;
+	frustrum.matrix[3][2] = -1;
+	frustrum.matrix[3][3] = 0;
+	
+	mglMultMatrix(frustrum);
+	
 }
 
 /**
@@ -545,7 +568,7 @@ void mglOrtho(MGLfloat left,
 	ortho.matrix[1][3] = t_y;
 	ortho.matrix[2][3] = t_z;
 	
-	currMatrix = ortho; 
+	mglMultMatrix(ortho); 
 }
 
 /**
