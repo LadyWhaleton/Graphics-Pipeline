@@ -103,15 +103,22 @@ class Vertex
 	Vertex(MGLfloat X, MGLfloat Y, MGLfloat Z) :x(X), y(Y), z(Z) {}
 };
 
+MGLint RGB[3];
+MGLpixel color; // MGLpixel is unsigned int
 
 // pixel contains the coordinates, 
 class Pixel
 {
 	MGLfloat x, y;
+	MGLpixel pcolor[3];
 	
 	Pixel(MGLfloat X, MGLfloat Y)
 		: x(X), y(Y)
-	{}
+	{
+		pcolor[0] = RGB[0];
+		pcolor[1] = RGB[1];
+		pcolor[2] = RGB[2]; 
+	}
 };
 
 
@@ -120,8 +127,6 @@ class Pixel
 int mgl_ShapeMode = -1;
 int mgl_MatrixMode = -1;
 
-MGLint RGB[3];
-MGLpixel color; // MGLpixel is unsigned int
 vector<Pixel> frameBuffer;
 
 vector<Vertex> vertexList;
