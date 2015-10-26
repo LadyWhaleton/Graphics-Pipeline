@@ -469,8 +469,9 @@ void mglTranslate(MGLfloat x,
                   MGLfloat y,
                   MGLfloat z)
 {
-	Matrix t; 
-	t.clearMatrix();
+	Matrix t(x, y, z); 
+	mglMultMatrix(t);
+	
 }
 
 /**
