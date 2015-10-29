@@ -98,10 +98,24 @@ class Vertex
 {
 	public:
 	MGLfloat x, y, z;
+	int x_screen, y_screen, z_screen;
 	
 	Vertex() :x(0), y(0), z(0) {}
 	Vertex(MGLfloat X, MGLfloat Y, MGLfloat Z) :x(X), y(Y), z(Z) {}
+	
+	// convert world to screen coordinates
+	// by default, points are relative to the world space
+	// http://webglfactory.blogspot.com/2011/05/how-to-convert-world-to-screen.html
+	void convert2ScreenCoord(MGLsize width, MGLsize height)
+	{
+
+		x_screen = (int) (x*width);
+		y_screen = (int) (y*height);	
+		
+	}
+	
 };
+
 
 MGLint RGB[3];
 MGLpixel color; // MGLpixel is unsigned int
@@ -121,7 +135,6 @@ class Pixel
 	}
 };
 
-
 // Global variables I added
 
 int mgl_ShapeMode = -1;
@@ -130,9 +143,94 @@ int mgl_MatrixMode = -1;
 vector<Pixel> frameBuffer;
 
 vector<Vertex> vertexList;
+
 stack <Matrix> ModelMatrixStack;
 stack <Matrix> ProjMatrixStack;
 Matrix currMatrix;
+
+class BoundingBox
+{
+	public:
+		int min_x, max_x, min_y, max_y;
+		
+	BoundingBox()
+		: min_x(0), max_x(0), min_y(0), max_y(0)
+	{}
+	
+	void initBB()
+	{
+		min_x = getMin_X();
+		min_y = getMin_Y();
+		max_x = getMax_X();
+		max_y = getMax_Y();
+	}
+	
+	private:
+	// returns the minimum value 
+	int getMin_X()
+	{
+		int numVertices = vertexList.size();
+		
+		int min = vertexList[0].x_screen;
+		
+		for (int i = 1; i < numVertices; ++i)
+		{
+			if (vertexList[i].x_screen < min)
+				min = vertexList[i].x_screen;
+		}
+		
+		return min;
+		
+	}
+
+	int getMin_Y()
+	{
+		int numVertices = vertexList.size();
+		
+		int min = vertexList[0].y_screen;
+		
+		for (int i = 1; i < numVertices; ++i)
+		{
+			if (vertexList[i].y_screen < min)
+				min = vertexList[i].y_screen;
+		}
+		
+		return min;
+	}
+
+	int getMax_X()
+	{
+		int numVertices = vertexList.size();
+		
+		int max = vertexList[0].x_screen;
+		
+		for (int i = 0; i < numVertices; ++i)
+		{
+			if (vertexList[i].x_screen > max)
+				max = vertexList[i].x_screen;
+		}
+		
+		return max;
+	}
+
+	int getMax_Y()
+	{
+		int numVertices = vertexList.size();
+		
+		int max = vertexList[0].y_screen;
+		
+		for (int i = 0; i < numVertices; ++i)
+		{
+			if (vertexList[i].y_screen > max)
+				max = vertexList[i].y_screen;
+		}
+		
+		return max;
+	}
+		
+};
+
+BoundingBox mgl_BoundingBox;
 
 /**
  * Standard macro to report errors
@@ -142,11 +240,6 @@ inline void MGL_ERROR(const char* description) {
     exit(1);
 }
 
-// convert world to screen coordinates
-void convert2ScreenCoord()
-{
-	
-}
 
 /*
 // from lab 1
@@ -173,91 +266,15 @@ void set_pixel(int x, int y)
     set_pixel(x,y,col);
 }
 
-// ==================from lab2, the DDA algorithm=======================
-void draw_line_shallow_pos(int x0, int x1, int y0, int y1, float m)
-{
-    float y = y0;
-    for(int x = x0; x < x1; ++x)
-    {
-        // compute successive y values
-        set_pixel(x, y);
-        y = y + m;
-    }
-}
-
-void draw_line_shallow_neg(int x0, int x1, int y0, int y1, float m)
-{
-    float y = y0;
-    for(int x = x0; x > x1; --x)
-    {
-        // compute successive y values
-        set_pixel(x, y);
-        y = y - m;
-    }
-}
-
-void draw_line_steep_pos(int x0, int x1, int y0, int y1, float m)
-{
-    float x = x0; 
-    // sample at dy = 1
-    for(int y = y0; y < y1; ++y)
-    {
-        // compute success x values
-        set_pixel(x, y); // store this points into array
-        x = x + 1/m;            
-    }
-}
-
-void draw_line_steep_neg(int x0, int x1, int y0, int y1, float m)
-{
-    float x = x0; 
-    // sample at dy = 1
-    for(int y = y0; y > y1; --y)
-    {
-        // compute success x values
-        set_pixel(x, y);
-        x = x - 1/m;            
-    }
-}
-
-void draw_line(int x0, int y0, int x1, int y1)
-{
-
-    float dx = x1 - x0;
-    float dy = y1 - y0;
-    
-    if (dx == 0)
-    {
-        //Error: Undefined slope
-        return;
-    }
-    
-    // calculate slope
-    float m = dy/dx;
-
-    // shallow slope
-    if (abs(m) <= 1)
-    {
-        if (dx < 0)
-            draw_line_shallow_neg(x0, x1, y0, y1, m);
-        else
-            draw_line_shallow_pos(x0, x1, y0, y1, m);
-    }
-    
-    // steep slope
-    else if (abs(m) > 1)
-    {
-        if (dy < 0)
-            draw_line_steep_neg(x0, x1, y0, y1, m);
-        else
-            draw_line_steep_pos(x0, x1, y0, y1, m);
-    }
-        
-    return;
-}
 */
 
 // ===================== end of DDA stuff ============================
+
+
+void rasterizeTriangle(MGLsize width, MGLsize height)
+{
+	
+}
 
 /**
  * Read pixel data starting with the pixel at coordinates
