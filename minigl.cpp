@@ -106,13 +106,23 @@ class Vertex
 	// convert world to screen coordinates
 	// by default, points are relative to the world space
 	// http://webglfactory.blogspot.com/2011/05/how-to-convert-world-to-screen.html
+	// might want to deal with negatives here...
 	void convert2ScreenCoord(MGLsize width, MGLsize height)
 	{
-
-		x_screen = (int) (x*width);
-		y_screen = (int) (y*height);	
+		if (x < 0)
+			x_screen = width + (int) (x*width);
+			
+		else
+			x_screen = (int) (x*width);
 		
-		//cout << "x screen: " << x_screen << ", y screen: " << y_screen << endl;
+		if (y < 0)
+			y_screen =  height + (int) (y*height);
+		else
+			y_screen = (int) (y*height);	
+		
+		cout <<  x << endl;
+		
+		cout << "x screen: " << x_screen << ", y screen: " << y_screen << endl;
 		
 	}
 	
@@ -262,6 +272,8 @@ void set_pixel(int x, int y, MGLpixel c)
 void convert2ScreenCoord(MGLsize width, MGLsize height)
 {
 	int numVertices = vertexList.size();
+	cout << "numVert: " << numVertices << endl;
+	
 	for (int i = 0; i < numVertices; ++i)
 		vertexList[i].convert2ScreenCoord(width, height);
 }
@@ -278,7 +290,61 @@ float f (float x, float y, float x_b, float y_b, float x_c, float y_c)
 
 
 // determines if points are inside the triangle
-void drawPixels(float x, float y, MGLsize width, MGLpixel* data)
+void drawTriangle(float x, float y, MGLsize width, MGLpixel* data)
+{
+	// vertex A
+	float x_a = vertexList[0].x_screen;
+	float y_a = vertexList[0].y_screen;
+	
+	// vertex B
+	float x_b = vertexList[1].x_screen;
+	float y_b = vertexList[1].y_screen;
+	
+	// vertex C 
+	float x_c = vertexList[2].x_screen;
+	float y_c = vertexList[2].y_screen;
+	
+	float alpha = f(x, y, x_b, y_b, x_c, y_c) / f(x_a, y_a, x_b, y_b, x_c, y_c);
+	float beta = f(x, y, x_c, y_c, x_a, y_a) / f(x_b, y_b, x_c, y_c, x_a, y_a);
+	float gamma = f(x, y, x_a, y_a, x_b, y_b) / f(x_c, y_c, x_a, y_a, x_b, y_b);
+	
+	// if it's inside the triangle
+	if (alpha >= 0 && beta >= 0 && gamma >= 0)
+	{
+		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
+		// MGLpixel c = alpha *color + beta*color + gamma*color;
+		int position = ((int) y) * width + ((int) x);
+		data[position] = color;
+	}
+	
+}
+
+void rasterizeTriangle(MGLsize width, MGLsize height, MGLpixel* data)
+{
+	// convert vertices to screen coordinates
+	convert2ScreenCoord(width, height);
+	
+	// obtain the bounding box in screen coordinates
+	mgl_BoundingBox.initBB(width, height);
+	
+	float x_min = mgl_BoundingBox.min_x;
+	float x_max = mgl_BoundingBox.max_x;
+	float y_min = mgl_BoundingBox.min_y;
+	float y_max = mgl_BoundingBox.max_y;
+	
+	//cout << "rasterizing triangle" << endl;
+	
+	for (float x = x_min; x <= x_max; ++x)
+		for (float y = y_min; y <= y_max; ++y)
+		{
+			//cout << "x: " << x << " y: " << y << endl;
+			drawTriangle(x, y, width, data);
+		}
+}
+
+// for quads
+// determines if points are inside the triangle
+void drawTriangle1(float x, float y, MGLsize width, MGLpixel* data)
 {
 	// vertex A
 	float x_a = vertexList[0].x_screen;
@@ -309,9 +375,38 @@ void drawPixels(float x, float y, MGLsize width, MGLpixel* data)
 	
 }
 
- 
+void drawTriangle2(float x, float y, MGLsize width, MGLpixel* data)
+{
+	// vertex A
+	float x_a = vertexList[0].x_screen;
+	float y_a = vertexList[0].y_screen;
+	
+	// vertex B
+	float x_b = vertexList[3].x_screen;
+	float y_b = vertexList[3].y_screen;
+	
+	// vertex C 
+	float x_c = vertexList[2].x_screen;
+	float y_c = vertexList[2].y_screen;
+	
+	float alpha = f(x, y, x_b, y_b, x_c, y_c) / f(x_a, y_a, x_b, y_b, x_c, y_c);
+	float beta = f(x, y, x_c, y_c, x_a, y_a) / f(x_b, y_b, x_c, y_c, x_a, y_a);
+	float gamma = f(x, y, x_a, y_a, x_b, y_b) / f(x_c, y_c, x_a, y_a, x_b, y_b);
+	
+	// if it's inside the triangle
+	if (alpha >= 0 && beta >= 0 && gamma >= 0)
+	{
+		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
+		// MGLpixel c = alpha *color + beta*color + gamma*color;
+		int position = ((int) y) * width + ((int) x);
+		data[position] = color;
+	}
 
-void rasterizeTriangle(MGLsize width, MGLsize height, MGLpixel* data)
+	
+	
+}
+
+void rasterizeQuad(MGLsize width, MGLsize height, MGLpixel* data)
 {
 	// convert vertices to screen coordinates
 	convert2ScreenCoord(width, height);
@@ -324,13 +419,14 @@ void rasterizeTriangle(MGLsize width, MGLsize height, MGLpixel* data)
 	float y_min = mgl_BoundingBox.min_y;
 	float y_max = mgl_BoundingBox.max_y;
 	
-	//cout << "rasterizing triangle" << endl;
+	cout << "rasterizing quad" << endl;
 	
 	for (float x = x_min; x <= x_max; ++x)
 		for (float y = y_min; y <= y_max; ++y)
 		{
 			//cout << "x: " << x << " y: " << y << endl;
-			drawPixels(x, y, width, data);
+			drawTriangle1(x, y, width, data);
+			drawTriangle2(x, y, width, data);
 		}
 }
 
@@ -367,6 +463,12 @@ void mglReadPixels(MGLsize width,
 		rasterizeTriangle(width, height, data);
 		cout << "Done drawing triangle" << endl;
 	}
+	
+	else if (mgl_ShapeMode == MGL_QUADS)
+	{
+		rasterizeQuad(width, height, data);
+		cout << "Done drawing rectangle" << endl;
+	}
 
 	/*
 	 int size = frameBuffer.size();
@@ -379,11 +481,6 @@ void mglReadPixels(MGLsize width,
 		
 	}
 	*/
-	
-	
-	// double for loop.
-	// for y < height
-	// for x < width
 
 	
 }
