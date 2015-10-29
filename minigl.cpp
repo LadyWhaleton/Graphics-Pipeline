@@ -112,33 +112,31 @@ class Vertex
 		x_screen = (int) (x*width);
 		y_screen = (int) (y*height);	
 		
+		//cout << "x screen: " << x_screen << ", y screen: " << y_screen << endl;
+		
 	}
 	
 };
 
 
-MGLint RGB[3];
 MGLpixel color; // MGLpixel is unsigned int
 
 // pixel contains the coordinates, 
 class Pixel
 {
-	MGLfloat x, y;
-	MGLpixel pcolor[3];
+	public:
+	int x, y;
+	MGLpixel pcolor;
 	
-	Pixel(MGLfloat X, MGLfloat Y)
-		: x(X), y(Y)
-	{
-		pcolor[0] = RGB[0];
-		pcolor[1] = RGB[1];
-		pcolor[2] = RGB[2]; 
-	}
+	Pixel(int X, int Y, MGLpixel c)
+		: x(X), y(Y), pcolor(color)
+	{}
 };
 
 // Global variables I added
 
-int mgl_ShapeMode = -1;
-int mgl_MatrixMode = -1;
+int mgl_ShapeMode;
+int mgl_MatrixMode;
 
 vector<Pixel> frameBuffer;
 
@@ -151,13 +149,13 @@ Matrix currMatrix;
 class BoundingBox
 {
 	public:
-		int min_x, max_x, min_y, max_y;
+		float min_x, max_x, min_y, max_y;
 		
 	BoundingBox()
 		: min_x(0), max_x(0), min_y(0), max_y(0)
 	{}
 	
-	void initBB()
+	void initBB(float width, float height)
 	{
 		min_x = getMin_X();
 		min_y = getMin_Y();
@@ -167,11 +165,11 @@ class BoundingBox
 	
 	private:
 	// returns the minimum value 
-	int getMin_X()
+	float getMin_X()
 	{
 		int numVertices = vertexList.size();
 		
-		int min = vertexList[0].x_screen;
+		float min = vertexList[0].x_screen;
 		
 		for (int i = 1; i < numVertices; ++i)
 		{
@@ -183,11 +181,11 @@ class BoundingBox
 		
 	}
 
-	int getMin_Y()
+	float getMin_Y()
 	{
 		int numVertices = vertexList.size();
 		
-		int min = vertexList[0].y_screen;
+		float min = vertexList[0].y_screen;
 		
 		for (int i = 1; i < numVertices; ++i)
 		{
@@ -198,13 +196,13 @@ class BoundingBox
 		return min;
 	}
 
-	int getMax_X()
+	float getMax_X()
 	{
 		int numVertices = vertexList.size();
 		
-		int max = vertexList[0].x_screen;
+		float max = vertexList[0].x_screen;
 		
-		for (int i = 0; i < numVertices; ++i)
+		for (int i = 1; i < numVertices; ++i)
 		{
 			if (vertexList[i].x_screen > max)
 				max = vertexList[i].x_screen;
@@ -213,13 +211,13 @@ class BoundingBox
 		return max;
 	}
 
-	int getMax_Y()
+	float getMax_Y()
 	{
 		int numVertices = vertexList.size();
 		
-		int max = vertexList[0].y_screen;
+		float max = vertexList[0].y_screen;
 		
-		for (int i = 0; i < numVertices; ++i)
+		for (int i = 1; i < numVertices; ++i)
 		{
 			if (vertexList[i].y_screen > max)
 				max = vertexList[i].y_screen;
@@ -241,7 +239,7 @@ inline void MGL_ERROR(const char* description) {
 }
 
 
-/*
+
 // from lab 1
 
 // set pixel (x,y) in framebuffer to color col, where
@@ -251,29 +249,89 @@ inline void MGL_ERROR(const char* description) {
 // YELLOW: (1,1,0) MAGENTA: (1,0,1) CYAN: (0,1,1)
 // )
 //
-// convert to screen coordinates 
-void set_pixel(int x, int y, float col[3])
+
+
+void set_pixel(int x, int y, MGLpixel c)
 {
-    // write a 1x1 block of pixels of color col to framebuffer
-    // coordinates (x, y)
-    glRasterPos2i(x, y);
-    glDrawPixels(1, 1, GL_RGB, GL_FLOAT, col);
+    Pixel pixy(x, y, c);
+    frameBuffer.push_back(pixy);
 }
 
-void set_pixel(int x, int y)
+
+// convert each vertex to screen coordinates
+void convert2ScreenCoord(MGLsize width, MGLsize height)
 {
-    float col[] = { 1.0, 1.0, 1.0 };
-    set_pixel(x,y,col);
+	int numVertices = vertexList.size();
+	for (int i = 0; i < numVertices; ++i)
+		vertexList[i].convert2ScreenCoord(width, height);
 }
 
-*/
-
-// ===================== end of DDA stuff ============================
-
-
-void rasterizeTriangle(MGLsize width, MGLsize height)
+// barycentric coordinate stuff
+float f (float x, float y, float x_b, float y_b, float x_c, float y_c)
 {
+	return (y_b - y_c)*x + (x_c - x_b)*y + (x_b*y_c) - (x_c*y_b);
+}
+
+// a is vertexList[0];
+// b is vertexList[1];
+// c is vertexList[2];
+
+
+// determines if points are inside the triangle
+void drawPixels(float x, float y, MGLsize width, MGLpixel* data)
+{
+	// vertex A
+	float x_a = vertexList[0].x_screen;
+	float y_a = vertexList[0].y_screen;
 	
+	// vertex B
+	float x_b = vertexList[1].x_screen;
+	float y_b = vertexList[1].y_screen;
+	
+	// vertex C 
+	float x_c = vertexList[2].x_screen;
+	float y_c = vertexList[2].y_screen;
+	
+	float alpha = f(x, y, x_b, y_b, x_c, y_c) / f(x_a, y_a, x_b, y_b, x_c, y_c);
+	float beta = f(x, y, x_c, y_c, x_a, y_a) / f(x_b, y_b, x_c, y_c, x_a, y_a);
+	float gamma = f(x, y, x_a, y_a, x_b, y_b) / f(x_c, y_c, x_a, y_a, x_b, y_b);
+	
+	// if it's inside the triangle
+	if (alpha >= 0 && beta >= 0 && gamma >= 0)
+	{
+		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
+		// MGLpixel c = alpha *color + beta*color + gamma*color;
+		int position = ((int) y) * width + ((int) x);
+		data[position] = color;
+	}
+
+	
+	
+}
+
+ 
+
+void rasterizeTriangle(MGLsize width, MGLsize height, MGLpixel* data)
+{
+	// convert vertices to screen coordinates
+	convert2ScreenCoord(width, height);
+	
+	// obtain the bounding box in screen coordinates
+	mgl_BoundingBox.initBB(width, height);
+	
+	float x_min = mgl_BoundingBox.min_x;
+	float x_max = mgl_BoundingBox.max_x;
+	float y_min = mgl_BoundingBox.min_y;
+	float y_max = mgl_BoundingBox.max_y;
+	
+	//cout << "rasterizing triangle" << endl;
+	
+	for (float x = x_min; x <= x_max; ++x)
+		for (float y = y_min; y <= y_max; ++y)
+		{
+			//cout << "x: " << x << " y: " << y << endl;
+			drawPixels(x, y, width, data);
+		}
 }
 
 /**
@@ -292,6 +350,11 @@ void mglReadPixels(MGLsize width,
                    MGLsize height,
                    MGLpixel *data)
 {
+	// this function is called in main. it colors all of the pixels
+	// that you want it to all at once. Need to store these pixels with the 
+	// corresponding color somehow
+	
+	
 	// data contains buffer of coordinates for each pixel on screen
 	// data is an 1D array containing x,y coordinates of the screen
 	// for ex: starting from bottom left. 
@@ -299,26 +362,29 @@ void mglReadPixels(MGLsize width,
 	// data[1] contains the point (1,0),
 	// data[2] contains the point (2,0), etc.
 	
+	if (mgl_ShapeMode == MGL_TRIANGLES)
+	{
+		rasterizeTriangle(width, height, data);
+		cout << "Done drawing triangle" << endl;
+	}
+
+	/*
+	 int size = frameBuffer.size();
+	 for (int i = 0; i < size; ++i)
+	 {
+		int x = frameBuffer[i].x;
+		int y = frameBuffer[i].y;
+		MGLpixel c = frameBuffer[i].pcolor;
+		data[y*width + x] = color;
+		
+	}
+	*/
 	
-	// MGLpixel color
-	// set red,blue,green
-	// data[y*width+x] = color
-	MGL_SET_RED(color, RGB[0]);
-	MGL_SET_BLUE(color, RGB[1]);
-	MGL_SET_GREEN(color, RGB[2]);
-	
-	data[650] = color;
 	
 	// double for loop.
 	// for y < height
 	// for x < width
 
-	// you times y by width to go up rows and add x to indicate which
-	// row & column of the screen
-	
-	// this function is called in main. it colors all of the pixels
-	// that you want it to all at once. Need to store these pixels with the 
-	// corresponding color somehow
 	
 }
 
@@ -329,9 +395,9 @@ void mglReadPixels(MGLsize width,
 void mglBegin(MGLpoly_mode mode)
 {
 	// check what the mode is
-	if (mgl_ShapeMode == MGL_TRIANGLES || mgl_ShapeMode == MGL_QUADS)
+	if (mode == MGL_TRIANGLES || mode == MGL_QUADS)
 		mgl_ShapeMode = mode;
-	
+
 	else
 		mgl_ShapeMode = -1;
 }
@@ -341,7 +407,7 @@ void mglBegin(MGLpoly_mode mode)
  */
 void mglEnd()
 {
-	mgl_ShapeMode = -1;
+	
 }
 
 /**
@@ -355,6 +421,7 @@ void mglVertex2(MGLfloat x,
 {
 	Vertex Vec2(x, y, 0);
 	vertexList.push_back(Vec2);
+	//cout << "pushing vertex 2D" << endl;
 
 }
 
@@ -368,6 +435,7 @@ void mglVertex3(MGLfloat x,
 {
 	Vertex Vec3(x, y, z);
 	vertexList.push_back(Vec3);
+	//cout << "pushing vertex 3D" << endl;
 
 }
 
@@ -621,7 +689,8 @@ void mglColor(MGLbyte red,
               MGLbyte green,
               MGLbyte blue)
 {
-	RGB[0] = red;
-	RGB[1] = green;
-	RGB[2] = blue;
+	
+	MGL_SET_RED(color, red);
+	MGL_SET_GREEN(color, green);
+	MGL_SET_BLUE(color, blue);
 }
