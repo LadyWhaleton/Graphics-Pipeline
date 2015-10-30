@@ -12,6 +12,16 @@ using namespace std;
 int mgl_ShapeMode;
 int mgl_MatrixMode;
 
+class Matrix;
+class Vertex;
+class Pixel;
+
+stack <Matrix> ModelMatrixStack;
+stack <Matrix> ProjMatrixStack;
+
+vector<Pixel> frameBuffer;
+vector<Vertex> vertexList;
+
 // classes I created
 class Matrix
 {
@@ -80,9 +90,6 @@ class Matrix
 
 };
 
-stack <Matrix> ModelMatrixStack;
-stack <Matrix> ProjMatrixStack;
-
 
 class Vertex
 {
@@ -103,9 +110,6 @@ void mglVertex3(MGLfloat x,
 
 }
 
-vector<Vertex> vertexList;
-
-
 // pixel contains the coordinates, 
 class Pixel
 {
@@ -116,6 +120,15 @@ class Pixel
 	{}
 };
 
+Matrix topMatrix()
+{
+	if (mgl_MatrixMode == MGL_MODELVIEW && !ModelMatrixStack.empty())
+		return ModelMatrixStack.top();
+	
+	else if (mgl_MatrixMode == MGL_PROJECTION && !ProjMatrixStack.empty())
+		return ProjMatrixStack.top();
+	
+}
 
 void mglMultMatrix(Matrix& left, const Matrix& m)
 {
@@ -308,14 +321,14 @@ void test3()
 
 void test4()
 {
+	mglMatrixMode(MGL_MODELVIEW);
+	mglLoadIdentity();
 	
-	Matrix m1(3, 1, 3);
-	
-	cout << "Before translation:\n" << currMatrix << endl;
+	cout << "Before translation:\n" << topMatrix() << endl;
 	
 	mglTranslate(5, 0, 9);
 	
-	cout << "After translation:\n" << currMatrix << endl;
+	cout << "After translation:\n" << topMatrix() << endl;
 	
 }
 

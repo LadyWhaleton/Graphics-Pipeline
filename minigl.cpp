@@ -313,6 +313,15 @@ inline void MGL_ERROR(const char* description) {
     exit(1);
 }
 
+Matrix topMatrix()
+{
+	if (mgl_MatrixMode == MGL_MODELVIEW && !ModelMatrixStack.empty())
+		return ModelMatrixStack.top();
+	
+	else if (mgl_MatrixMode == MGL_PROJECTION && !ProjMatrixStack.empty())
+		return ProjMatrixStack.top();
+	
+}
 
 
 // from lab 1
@@ -324,8 +333,6 @@ inline void MGL_ERROR(const char* description) {
 // YELLOW: (1,1,0) MAGENTA: (1,0,1) CYAN: (0,1,1)
 // )
 //
-
-
 void set_pixel(int x, int y, MGLpixel c)
 {
     Pixel pixy(x, y, c);
