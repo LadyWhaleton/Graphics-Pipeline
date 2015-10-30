@@ -30,6 +30,9 @@ using namespace std;
 int mgl_ShapeMode;
 int mgl_MatrixMode;
 
+int HALF_WIDTH = 160;
+int HALF_HEIGHT = 120;
+
 class Matrix;
 class Vertex;
 class Pixel;
@@ -41,7 +44,12 @@ stack <Matrix> ProjMatrixStack;
 vector<Pixel> frameBuffer;
 vector<Vertex> vertexList;
 
+void mglMultMatrix(Matrix& left, const Matrix& m);
+Vertex VertexTransform(const Matrix& m, const Vertex& v);
+
 MGLpixel color; // MGLpixel is unsigned int
+
+// add 1, divide by 2
 
 // classes I created
 class Matrix
@@ -74,6 +82,19 @@ class Matrix
 		}
 		
 		return *this;
+	}
+	
+	Matrix operator* (const Matrix& rhs)
+	{
+		Matrix result;
+		result.clearMatrix();
+		
+		// [ currMatrix ] [ m ]
+		for (int i = 0; i < 4; ++i)
+			for (int j = 0; j < 4; ++j)
+				for (int k = 0; k < 4; ++k)
+					result.matrix[i][j] += matrix[i][k] * rhs.matrix[k][j];
+		return result;
 	}
 	
 	friend ostream& operator<< (ostream& os, const Matrix& m)
@@ -121,9 +142,6 @@ class Matrix
 
 };
 
-
-void mglMultMatrix(Matrix& left, const Matrix& m);
-
 class Vertex
 {
 	public:
@@ -132,6 +150,23 @@ class Vertex
 	
 	Vertex() :x(0), y(0), z(0) {}
 	Vertex(MGLfloat X, MGLfloat Y, MGLfloat Z) :x(X), y(Y), z(Z) {}
+	
+	Vertex& operator= (const Vertex& rhs)
+	{
+		// this is for avoiding assignment of the same object
+		if (this != &rhs) 
+		{
+			x = rhs.x;
+			y = rhs.y;
+			z = rhs.z;
+			
+			x_screen = rhs.x_screen;
+			y_screen = rhs.y_screen;
+			z_screen = rhs.y_screen;
+		}
+		
+		return *this;
+	}
 	
 	// convert world to screen coordinates
 	// by default, points are relative to the world space
@@ -216,7 +251,7 @@ class Pixel
 	MGLpixel pcolor;
 	
 	Pixel(int X, int Y, MGLpixel c)
-		: x(X), y(Y), pcolor(color)
+		: x(X), y(Y), pcolor(c)
 	{}
 };
 

@@ -12,6 +12,9 @@ using namespace std;
 int mgl_ShapeMode;
 int mgl_MatrixMode;
 
+int HALF_WIDTH = 160;
+int HALF_HEIGHT = 120;
+
 class Matrix;
 class Vertex;
 class Pixel;
@@ -64,6 +67,7 @@ class Matrix
 			os << "\n";
 		}
 		return os;
+		
 	}
 	
 	void clearMatrix()
@@ -71,7 +75,16 @@ class Matrix
 		for (int row = 0; row < 4; ++row)
 			for (int col = 0; col < 4; ++col)
 				matrix[row][col] = 0;
-	}		
+	}
+	
+	void createScaler(float x, float y, float z)
+	{
+		clearMatrix();
+		matrix[0][0] = x;
+		matrix[1][1] = y;
+		matrix[2][2] = z;
+	}
+		
 	
 	private:
 	void initMatrix (MGLfloat X, MGLfloat Y, MGLfloat Z)
@@ -83,7 +96,7 @@ class Matrix
 		matrix[3][3] = 1;
 		
 		// set the x, y, z coordinate
-		matrix[0][3] = X;
+		matrix[0][3] = X; 
 		matrix[1][3] = Y; 
 		matrix[2][3] = Z;
 	}
@@ -319,6 +332,7 @@ void test3()
 	cout << m1;
 }
 
+// testing that translations work
 void test4()
 {
 	mglMatrixMode(MGL_MODELVIEW);
@@ -332,11 +346,28 @@ void test4()
 	
 }
 
+// test that vertices are being translated to screen coordinates
+void test5()
+{
+    mglMatrixMode(MGL_PROJECTION);
+    mglLoadIdentity();
+    mglFrustum(-1.0, 1.0, -1.0, 1.0, 1.0, 100.0);
+    mglMatrixMode(MGL_MODELVIEW);
+    mglLoadIdentity();
+    
+    
+    
+	mglMultMatrix(, s);
+	
+	cout << m1 << endl;
+}
+
 int main()
 {
 	//test1();
 	//test2();
 	//test3();
-	test4();
+	//test4();
+	test5();
 	return 0;
 }
