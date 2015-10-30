@@ -11,6 +11,11 @@
  * Fall 2015
  */
 
+
+// http://www.falloutsoftware.com/tutorials/gl/gl0.htm
+// http://www.songho.ca/opengl/gl_transform.html
+// http://www.learnopengles.com/understanding-opengls-matrices/
+
 #include <cstdio>
 #include <cstdlib>
 #include "minigl.h"
@@ -22,6 +27,21 @@
 
 using namespace std;
 
+int mgl_ShapeMode;
+int mgl_MatrixMode;
+
+class Matrix;
+class Vertex;
+class Pixel;
+class BoundingBox;
+
+stack <Matrix> ModelMatrixStack;
+stack <Matrix> ProjMatrixStack;
+
+vector<Pixel> frameBuffer;
+vector<Vertex> vertexList;
+
+MGLpixel color; // MGLpixel is unsigned int
 
 // classes I created
 class Matrix
@@ -74,6 +94,14 @@ class Matrix
 			for (int col = 0; col < 4; ++col)
 				matrix[row][col] = 0;
 	}
+	
+	void createScaler(float x, float y, float z)
+	{
+		clearMatrix();
+		matrix[0][0] = x;
+		matrix[1][1] = y;
+		matrix[2][2] = z;
+	}
 		
 	
 	private:
@@ -94,6 +122,8 @@ class Matrix
 };
 
 
+void mglMultMatrix(Matrix& left, const Matrix& m);
+
 class Vertex
 {
 	public:
@@ -107,6 +137,53 @@ class Vertex
 	// by default, points are relative to the world space
 	// http://webglfactory.blogspot.com/2011/05/how-to-convert-world-to-screen.html
 	// might want to deal with negatives here...
+	
+	/*
+	void convert2ScreenCoord(MGLsize width, MGLsize height)
+	{
+		cout << "converting" << endl;
+		
+		// create the matrix representing the vertex
+		Matrix m(x, y, z);
+		
+		cout << m << endl;
+		
+		// create the matrix that will scale according to screen size
+		Matrix s;
+		s.createScaler(width, height, 1);
+		cout << "s:\n" << s << endl;
+		
+		// create the matrix that will translate according to screen size
+		Matrix t(1, 1, 1);
+		
+		cout << "t:\n" << t << endl;
+		
+		// obtain the projection matrix from the stack
+		Matrix proj;
+		proj = ProjMatrixStack.top();
+		cout << proj << endl;
+		
+		Matrix model;
+		model = ModelMatrixStack.top();
+		cout << model << endl;
+		
+		// cout << "matrixMode: " << mgl_MatrixMode << endl;
+
+		
+		//mglMultMatrix(m, t);
+		mglMultMatrix(m, s);
+		
+		
+
+		
+		cout << "m:\n" << m << endl;
+		
+		
+	}
+	*/
+	
+	
+	
 	void convert2ScreenCoord(MGLsize width, MGLsize height)
 	{
 		if (x < 0)
@@ -126,10 +203,10 @@ class Vertex
 		
 	}
 	
+	
+	
 };
 
-
-MGLpixel color; // MGLpixel is unsigned int
 
 // pixel contains the coordinates, 
 class Pixel
@@ -143,18 +220,6 @@ class Pixel
 	{}
 };
 
-// Global variables I added
-
-int mgl_ShapeMode;
-int mgl_MatrixMode;
-
-vector<Pixel> frameBuffer;
-
-vector<Vertex> vertexList;
-
-stack <Matrix> ModelMatrixStack;
-stack <Matrix> ProjMatrixStack;
-Matrix currMatrix;
 
 class BoundingBox
 {
@@ -290,7 +355,7 @@ float f (float x, float y, float x_b, float y_b, float x_c, float y_c)
 
 
 // determines if points are inside the triangle
-void drawTriangle(float x, float y, MGLsize width, MGLpixel* data)
+void drawTriangle(float x, float y)
 {
 	// vertex A
 	float x_a = vertexList[0].x_screen;
@@ -313,13 +378,18 @@ void drawTriangle(float x, float y, MGLsize width, MGLpixel* data)
 	{
 		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
 		// MGLpixel c = alpha *color + beta*color + gamma*color;
+		
+		set_pixel(x, y, color);
+		
+		/*
 		int position = ((int) y) * width + ((int) x);
 		data[position] = color;
+		*/
 	}
 	
 }
 
-void rasterizeTriangle(MGLsize width, MGLsize height, MGLpixel* data)
+void rasterizeTriangle(MGLsize width, MGLsize height)
 {
 	// convert vertices to screen coordinates
 	convert2ScreenCoord(width, height);
@@ -338,13 +408,13 @@ void rasterizeTriangle(MGLsize width, MGLsize height, MGLpixel* data)
 		for (float y = y_min; y <= y_max; ++y)
 		{
 			//cout << "x: " << x << " y: " << y << endl;
-			drawTriangle(x, y, width, data);
+			drawTriangle(x, y);
 		}
 }
 
 // for quads
 // determines if points are inside the triangle
-void drawTriangle1(float x, float y, MGLsize width, MGLpixel* data)
+void drawTriangle1(float x, float y)
 {
 	// vertex A
 	float x_a = vertexList[0].x_screen;
@@ -367,15 +437,20 @@ void drawTriangle1(float x, float y, MGLsize width, MGLpixel* data)
 	{
 		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
 		// MGLpixel c = alpha *color + beta*color + gamma*color;
+		
+		set_pixel(x, y, color);
+		
+		/*
 		int position = ((int) y) * width + ((int) x);
 		data[position] = color;
+		*/
 	}
 
 	
 	
 }
 
-void drawTriangle2(float x, float y, MGLsize width, MGLpixel* data)
+void drawTriangle2(float x, float y)
 {
 	// vertex A
 	float x_a = vertexList[0].x_screen;
@@ -398,15 +473,20 @@ void drawTriangle2(float x, float y, MGLsize width, MGLpixel* data)
 	{
 		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
 		// MGLpixel c = alpha *color + beta*color + gamma*color;
+		
+		set_pixel(x, y, color);
+		
+		/*
 		int position = ((int) y) * width + ((int) x);
 		data[position] = color;
+		*/
 	}
 
 	
 	
 }
 
-void rasterizeQuad(MGLsize width, MGLsize height, MGLpixel* data)
+void rasterizeQuad(MGLsize width, MGLsize height)
 {
 	// convert vertices to screen coordinates
 	convert2ScreenCoord(width, height);
@@ -425,8 +505,8 @@ void rasterizeQuad(MGLsize width, MGLsize height, MGLpixel* data)
 		for (float y = y_min; y <= y_max; ++y)
 		{
 			//cout << "x: " << x << " y: " << y << endl;
-			drawTriangle1(x, y, width, data);
-			drawTriangle2(x, y, width, data);
+			drawTriangle1(x, y);
+			drawTriangle2(x, y);
 		}
 }
 
@@ -457,30 +537,18 @@ void mglReadPixels(MGLsize width,
 	// data[0] contains the point (0,0),
 	// data[1] contains the point (1,0),
 	// data[2] contains the point (2,0), etc.
-	
-	if (mgl_ShapeMode == MGL_TRIANGLES)
-	{
-		rasterizeTriangle(width, height, data);
-		cout << "Done drawing triangle" << endl;
-	}
-	
-	else if (mgl_ShapeMode == MGL_QUADS)
-	{
-		rasterizeQuad(width, height, data);
-		cout << "Done drawing rectangle" << endl;
-	}
 
-	/*
+	
 	 int size = frameBuffer.size();
 	 for (int i = 0; i < size; ++i)
 	 {
 		int x = frameBuffer[i].x;
 		int y = frameBuffer[i].y;
-		MGLpixel c = frameBuffer[i].pcolor;
+		// MGLpixel c = frameBuffer[i].pcolor;
 		data[y*width + x] = color;
 		
 	}
-	*/
+	
 
 	
 }
@@ -504,7 +572,17 @@ void mglBegin(MGLpoly_mode mode)
  */
 void mglEnd()
 {
+	if (mgl_ShapeMode == MGL_TRIANGLES)
+	{
+		rasterizeTriangle(320, 240);
+		cout << "Done creating triangle" << endl;
+	}
 	
+	else if (mgl_ShapeMode == MGL_QUADS)
+	{
+		rasterizeQuad(320, 240);
+		cout << "Done creating rectangle" << endl;
+	}
 }
 
 /**
@@ -563,11 +641,11 @@ void mglPushMatrix()
 	// when you wanted to modify your shape/object
 	
 	// push a copy of the top matrix
-	if (mgl_MatrixMode == MGL_MODELVIEW)
-		ModelMatrixStack.push(currMatrix);
+	if (mgl_MatrixMode == MGL_MODELVIEW && !ModelMatrixStack.empty())
+		ModelMatrixStack.push(ModelMatrixStack.top());
 	
-	else if (mgl_MatrixMode == MGL_PROJECTION)
-		ProjMatrixStack.push(currMatrix);
+	else if (mgl_MatrixMode == MGL_PROJECTION && !ProjMatrixStack.empty())
+		ProjMatrixStack.push(ModelMatrixStack.top());
 }
 
 /**
@@ -580,10 +658,16 @@ void mglPopMatrix()
 	// a specific stack. So you don't accidentally pop the projection matrix
 	// when you wanted to pop your shape/object
 	if (mgl_MatrixMode == MGL_MODELVIEW && !ModelMatrixStack.empty())
-		ModelMatrixStack.pop();
+	{
+		if (!ModelMatrixStack.empty())
+			ModelMatrixStack.pop();
+	}
 	
 	else if (mgl_MatrixMode == MGL_PROJECTION && !ProjMatrixStack.empty())
-		ProjMatrixStack.pop();
+	{
+		if (!ProjMatrixStack.empty())
+			ProjMatrixStack.pop();
+	}
 
 }
 
@@ -595,9 +679,25 @@ void mglLoadIdentity()
 	// sets the matrix currently on the top of the stack to the identity matrix
 	// this function seems to appear after mglModelView calls
 	
-	
 	Matrix Identity;
-	currMatrix = Identity;
+	
+	if (mgl_MatrixMode == MGL_PROJECTION)
+	{
+
+		if (!ProjMatrixStack.empty())
+			ProjMatrixStack.pop();
+			
+		ProjMatrixStack.push(Identity);
+		
+	}
+	else if (mgl_MatrixMode == MGL_MODELVIEW)
+	{
+		if (!ModelMatrixStack.empty())
+			ModelMatrixStack.pop();
+			
+		ModelMatrixStack.push(Identity);
+	}
+		
 }
 
 /**
@@ -614,7 +714,15 @@ void mglLoadIdentity()
  */
 void mglLoadMatrix(const Matrix& m)
 {
-	currMatrix = m;
+	// a specific stack. So you don't accidentally modify the projection matrix
+	// when you wanted to modify your shape/object
+	
+	// push a copy of the top matrix
+	if (mgl_MatrixMode == MGL_MODELVIEW && !ModelMatrixStack.empty())
+		ModelMatrixStack.push(m);
+	
+	else if (mgl_MatrixMode == MGL_PROJECTION && !ProjMatrixStack.empty())
+		ProjMatrixStack.push(m);
 }
 
 /**
@@ -629,7 +737,7 @@ void mglLoadMatrix(const Matrix& m)
  *
  * where ai is the i'th entry of the array.
  */
-void mglMultMatrix(const Matrix& m)
+void mglMultMatrix(Matrix& left, const Matrix& m)
 {
 	Matrix result;
 	result.clearMatrix();
@@ -638,9 +746,9 @@ void mglMultMatrix(const Matrix& m)
 	for (int i = 0; i < 4; ++i)
 		for (int j = 0; j < 4; ++j)
 			for (int k = 0; k < 4; ++k)
-				result.matrix[i][j] += currMatrix.matrix[i][k] * m.matrix[k][j];
+				result.matrix[i][j] += left.matrix[i][k] * m.matrix[k][j];
 				
-	currMatrix = result;
+	left = result;
 }
 
 /**
@@ -652,7 +760,10 @@ void mglTranslate(MGLfloat x,
                   MGLfloat z)
 {
 	Matrix t(x, y, z); 
-	mglMultMatrix(t);
+	if (mgl_MatrixMode == MGL_PROJECTION)
+		mglMultMatrix(ProjMatrixStack.top(), t); 
+	else if (mgl_MatrixMode == MGL_MODELVIEW)
+		mglMultMatrix(ModelMatrixStack.top(), t);
 	
 }
 
@@ -684,7 +795,10 @@ void mglRotate(MGLfloat angle,
 	r.matrix[2][1] = y*z * (1 - c) + x*s;
 	r.matrix[2][2] = z*z * (1 - c) + c;
 	
-	mglMultMatrix(r);
+	if (mgl_MatrixMode == MGL_PROJECTION)
+		mglMultMatrix(ProjMatrixStack.top(), r); 
+	else if (mgl_MatrixMode == MGL_MODELVIEW)
+		mglMultMatrix(ModelMatrixStack.top(), r);
 	
 }
 
@@ -702,7 +816,10 @@ void mglScale(MGLfloat x,
 	s.matrix[1][1] = y;
 	s.matrix[2][2] = z;
 	
-	mglMultMatrix(s);
+	if (mgl_MatrixMode == MGL_PROJECTION)
+		mglMultMatrix(ProjMatrixStack.top(), s); 
+	else if (mgl_MatrixMode == MGL_MODELVIEW)
+		mglMultMatrix(ModelMatrixStack.top(), s);
 }
 
 /**
@@ -739,7 +856,10 @@ void mglFrustum(MGLfloat left,
 	frustrum.matrix[3][2] = -1;
 	frustrum.matrix[3][3] = 0;
 	
-	mglMultMatrix(frustrum);
+	if (mgl_MatrixMode == MGL_PROJECTION)
+		mglMultMatrix(ProjMatrixStack.top(), frustrum); 
+	else if (mgl_MatrixMode == MGL_MODELVIEW)
+		mglMultMatrix(ModelMatrixStack.top(), frustrum);
 	
 }
 
@@ -776,7 +896,10 @@ void mglOrtho(MGLfloat left,
 	ortho.matrix[1][3] = t_y;
 	ortho.matrix[2][3] = t_z;
 	
-	mglMultMatrix(ortho); 
+	if (mgl_MatrixMode == MGL_PROJECTION)
+		mglMultMatrix(ProjMatrixStack.top(), ortho); 
+	else if (mgl_MatrixMode == MGL_MODELVIEW)
+		mglMultMatrix(ModelMatrixStack.top(), ortho);
 }
 
 /**
