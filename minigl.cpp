@@ -10,11 +10,10 @@
  * CS130: Computer Graphics
  * Fall 2015
  */
-
-
-// http://www.falloutsoftware.com/tutorials/gl/gl0.htm
-// http://www.songho.ca/opengl/gl_transform.html
-// http://www.learnopengles.com/understanding-opengls-matrices/
+ 
+ // might need to modify rasterizeTriangle and Quad for
+ // different resolutions.
+ // mglReadPixels is called 
 
 #include <cstdio>
 #include <cstdlib>
@@ -30,8 +29,8 @@ using namespace std;
 int mgl_ShapeMode;
 int mgl_MatrixMode;
 
-int HALF_WIDTH = 160;
-int HALF_HEIGHT = 120;
+int SCREEN_WIDTH = 0;
+int SCREEN_HEIGHT = 0;
 
 class Matrix;
 class Vertex;
@@ -128,10 +127,7 @@ class Matrix
 	private:
 	void initMatrix (MGLfloat X, MGLfloat Y, MGLfloat Z)
 	{	
-		// set diagonals
-		matrix[0][0] = 1;
-		matrix[1][1] = 1;
-		matrix[2][2] = 1;
+		// set w
 		matrix[3][3] = 1;
 		
 		// set the x, y, z coordinate
@@ -173,45 +169,51 @@ class Vertex
 	// http://webglfactory.blogspot.com/2011/05/how-to-convert-world-to-screen.html
 	// might want to deal with negatives here...
 	
+	// http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
+	// http://gamedev.stackexchange.com/questions/40741/why-do-we-move-the-world-instead-of-the-camera
+	
+	// http://www.falloutsoftware.com/tutorials/gl/gl0.htm
+	// http://www.songho.ca/opengl/gl_transform.html
+	// http://www.learnopengles.com/understanding-opengls-matrices/
+
 	/*
 	void convert2ScreenCoord(MGLsize width, MGLsize height)
 	{
-		cout << "converting" << endl;
 		
 		// create the matrix representing the vertex
 		Matrix m(x, y, z);
 		
-		cout << m << endl;
+		cout << "vector:\n" << m << endl;
 		
 		// create the matrix that will scale according to screen size
 		Matrix s;
-		s.createScaler(width, height, 1);
-		cout << "s:\n" << s << endl;
+		s.createScaler(width/2, height/2, 1);
+		//cout << "s:\n" << s << endl;
 		
-		// create the matrix that will translate according to screen size
-		Matrix t(1, 1, 1);
-		
-		cout << "t:\n" << t << endl;
 		
 		// obtain the projection matrix from the stack
-		Matrix proj;
-		proj = ProjMatrixStack.top();
-		cout << proj << endl;
+		Matrix proj = ProjMatrixStack.top();
+		cout << "projection:\n" << proj << endl;
 		
-		Matrix model;
-		model = ModelMatrixStack.top();
-		cout << model << endl;
+		Matrix model = ModelMatrixStack.top();
+		//cout << model << endl;
 		
 		// cout << "matrixMode: " << mgl_MatrixMode << endl;
 
 		
 		//mglMultMatrix(m, t);
-		mglMultMatrix(m, s);
+		//mglMultMatrix(m, s);
 		
+		mglMultMatrix(m, model);
 		
+		cout << "vector * model\n" << m;
 
+		mglMultMatrix(m, proj);
 		
-		cout << "m:\n" << m << endl;
+		cout << "vector * projection\n" << m;
+		
+		
+		// divide by w
 		
 		
 	}
@@ -222,13 +224,19 @@ class Vertex
 	void convert2ScreenCoord(MGLsize width, MGLsize height)
 	{
 		if (x < 0)
+		{
 			x_screen = width + (int) (x*width);
+			
+		}
 			
 		else
 			x_screen = (int) (x*width);
 		
 		if (y < 0)
+		{
 			y_screen =  height + (int) (y*height);
+			
+		}
 		else
 			y_screen = (int) (y*height);	
 		
@@ -579,6 +587,24 @@ void mglReadPixels(MGLsize width,
 	// data[0] contains the point (0,0),
 	// data[1] contains the point (1,0),
 	// data[2] contains the point (2,0), etc.
+	
+	// set these for the other functions
+	SCREEN_WIDTH = width;
+	SCREEN_HEIGHT = height;
+	
+	
+	if (mgl_ShapeMode == MGL_TRIANGLES)
+	{
+		rasterizeTriangle(width, height);
+		cout << "Done creating triangle" << endl;
+	}
+	
+	else if (mgl_ShapeMode == MGL_QUADS)
+	{
+		rasterizeQuad(width, height);
+		cout << "Done creating rectangle" << endl;
+	}
+	
 
 	
 	 int size = frameBuffer.size();
@@ -614,6 +640,7 @@ void mglBegin(MGLpoly_mode mode)
  */
 void mglEnd()
 {
+	/*
 	if (mgl_ShapeMode == MGL_TRIANGLES)
 	{
 		rasterizeTriangle(320, 240);
@@ -625,6 +652,7 @@ void mglEnd()
 		rasterizeQuad(320, 240);
 		cout << "Done creating rectangle" << endl;
 	}
+	*/
 }
 
 /**
@@ -636,6 +664,12 @@ void mglEnd()
 void mglVertex2(MGLfloat x,
                 MGLfloat y)
 {
+	if (mgl_ShapeMode == -1)
+	{
+		MGL_ERROR("Error: Missing mglBegin! Aborting mission.\n");
+		exit(1);
+	}
+	
 	Vertex Vec2(x, y, 0);
 	vertexList.push_back(Vec2);
 	//cout << "pushing vertex 2D" << endl;
@@ -650,6 +684,12 @@ void mglVertex3(MGLfloat x,
                 MGLfloat y,
                 MGLfloat z)
 {
+	if (mgl_ShapeMode == -1)
+	{
+		MGL_ERROR("Missing mglBegin! Aborting mission.\n");
+		exit(1);
+	}
+	
 	Vertex Vec3(x, y, z);
 	vertexList.push_back(Vec3);
 	//cout << "pushing vertex 3D" << endl;
@@ -722,6 +762,10 @@ void mglLoadIdentity()
 	// this function seems to appear after mglModelView calls
 	
 	Matrix Identity;
+	Identity.matrix[0][0] = 1;
+	Identity.matrix[1][1] = 1;
+	Identity.matrix[2][2] = 1;
+	
 	
 	if (mgl_MatrixMode == MGL_PROJECTION)
 	{
@@ -923,7 +967,7 @@ void mglOrtho(MGLfloat left,
 	
 	x = 2/(right - left);
 	y = 2/(top - bottom);
-	z = 2/(far - near);
+	z = -2/(far - near);
 	
 	t_x = -(right + left)/(right - left);
 	t_y = -(top + bottom)/(top-bottom);

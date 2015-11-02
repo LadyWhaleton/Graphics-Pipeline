@@ -221,18 +221,19 @@ void mglTests(const int test_number)
             mglColor(255, 255, 255);
             mglBegin(MGL_QUADS);
             
-            /*
+            
             mglVertex3(-1.0, -1.0, -5.0);
             mglVertex3(1.0, -1.0, -2.0);
             mglVertex3(1.0, 1.0, -2.0);
             mglVertex3(-1.0, 1.0, -5.0);
-            */
             
+            
+            /*
             mglVertex3(-0.25, -0.25, -0.75);
             mglVertex3(0.25, -0.25, -0.50);
             mglVertex3(0.25, 0.25, -0.50);
             mglVertex3(-0.25, 0.25, -0.75);
-           
+			*/
             
             mglEnd();
             break;

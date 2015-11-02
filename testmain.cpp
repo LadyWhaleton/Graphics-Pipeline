@@ -58,6 +58,19 @@ class Matrix
 		return *this;
 	}
 	
+	Matrix operator* (const Matrix& rhs)
+	{
+		Matrix result;
+		result.clearMatrix();
+		
+		// [ currMatrix ] [ m ]
+		for (int i = 0; i < 4; ++i)
+			for (int j = 0; j < 4; ++j)
+				for (int k = 0; k < 4; ++k)
+					result.matrix[i][j] += matrix[i][k] * rhs.matrix[k][j];
+		return result;
+	}
+	
 	friend ostream& operator<< (ostream& os, const Matrix& m)
 	{
 		for (int row = 0; row < 4; ++row)
@@ -90,10 +103,7 @@ class Matrix
 	void initMatrix (MGLfloat X, MGLfloat Y, MGLfloat Z)
 	{	
 		// set diagonals
-		matrix[0][0] = 1;
-		matrix[1][1] = 1;
-		matrix[2][2] = 1;
-		matrix[3][3] = 1;
+		matrix[3][3] = 1; // w
 		
 		// set the x, y, z coordinate
 		matrix[0][3] = X; 
@@ -149,11 +159,18 @@ void mglMultMatrix(Matrix& left, const Matrix& m)
 	result.clearMatrix();
 	
 	// [ currMatrix ] [ m ]
-	for (int i = 0; i < 4; ++i)
-		for (int j = 0; j < 4; ++j)
-			for (int k = 0; k < 4; ++k)
-				result.matrix[i][j] += left.matrix[i][k] * m.matrix[k][j];
-				
+
+    MGLfloat s;
+    for (int i=0;i<4;i++)
+      for (int j=0;j<4;j++){
+        s=0;
+        for (int e=0;e<4;e++)
+          s+=left.matrix[i][e]* m.matrix[e][j];
+
+        
+        result.matrix[i][j]=s;
+	}
+	
 	left = result;
 }
 
@@ -163,6 +180,9 @@ void mglLoadIdentity()
 	// this function seems to appear after mglModelView calls
 	
 	Matrix Identity;
+	Identity.matrix[0][0] = 1;
+	Identity.matrix[1][1] = 1;
+	Identity.matrix[2][2] = 1;
 	
 	if (mgl_MatrixMode == MGL_PROJECTION)
 	{
@@ -256,7 +276,7 @@ void mglOrtho(MGLfloat left,
 	
 	x = 2/(right - left);
 	y = 2/(top - bottom);
-	z = 2/(far - near);
+	z = -2/(far - near);
 	
 	t_x = -(right + left)/(right - left);
 	t_y = -(top + bottom)/(top-bottom);
@@ -346,20 +366,39 @@ void test4()
 	
 }
 
+// [model][proj][vertices]
+// result = proj * vert
+// then model * result
+
+
 // test that vertices are being translated to screen coordinates
 void test5()
 {
-    mglMatrixMode(MGL_PROJECTION);
+     mglMatrixMode(MGL_PROJECTION);
+     mglLoadIdentity();
+     mglOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
+     mglMatrixMode(MGL_MODELVIEW);
+     mglLoadIdentity();
+     
+     Matrix m(.25, .25, 0);
+     
+     cout << "Proj Matrix:\n" << ProjMatrixStack.top() << endl;
+	 mglMultMatrix(m, ModelMatrixStack.top());
+	 mglMultMatrix(m, ProjMatrixStack.top());
+	 
+	 cout << m << endl;
+     
+   
+}
+
+void test6()
+{
+	mglMatrixMode(MGL_MODELVIEW);
     mglLoadIdentity();
-    mglFrustum(-1.0, 1.0, -1.0, 1.0, 1.0, 100.0);
-    mglMatrixMode(MGL_MODELVIEW);
-    mglLoadIdentity();
     
-    
-    
-	mglMultMatrix(, s);
+	mglTranslate(2,1,1);
 	
-	cout << m1 << endl;
+	cout << "\nModel Matrix:\n" << ModelMatrixStack.top() << endl;
 }
 
 int main()
@@ -369,5 +408,6 @@ int main()
 	//test3();
 	//test4();
 	test5();
+	//test6();
 	return 0;
 }
