@@ -48,8 +48,6 @@ Vertex VertexTransform(const Matrix& m, const Vertex& v);
 
 MGLpixel color; // MGLpixel is unsigned int
 
-// add 1, divide by 2
-
 // classes I created
 class Matrix
 {
@@ -247,7 +245,7 @@ class Vertex
 		x = x/w;
 		y = y/w;
 		z = z/w;
-		//w = -z;
+		w = w/w;
 	}
 	
 	void scaleToScreen(MGLsize width, MGLsize height)
@@ -258,21 +256,25 @@ class Vertex
 		
 	}
 	
-	// convert world to screen coordinates
-	// by default, points are relative to the world space
-	// http://webglfactory.blogspot.com/2011/05/how-to-convert-world-to-screen.html
-	// might want to deal with negatives here...
-	
-	// http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
-	// http://gamedev.stackexchange.com/questions/40741/why-do-we-move-the-world-instead-of-the-camera
-	
-	// http://www.falloutsoftware.com/tutorials/gl/gl0.htm
-	// http://www.songho.ca/opengl/gl_transform.html
-	// http://www.learnopengles.com/understanding-opengls-matrices/
-	
+	/* This function, conver2ScreenCoord, converts the world coordinates 
+	* x, y, z, w to the screen coordinates. 
+	* 
+	* For my implementation, the order of multiplication is
+	* 1. vector * model matrix
+	* 2. step 1 * projection matrix
+	* 3. step 2 * translation matrix ( this part handles negative values )
+	* 
+	* Each step of my multiplication returns a vector.
+	* 
+	* After that, I modify the resulting vector by scaling its x and y
+	* values according . To do so, I call scaleToScreen. 
+	* 
+	* x is set to x*width/2, and y is set to y*height/2 
+	* after that, I call convert2NDC which divides all vector points
+	* by w.
+	*/ 
 	void convert2ScreenCoord(MGLsize width, MGLsize height)
 	{
-		// Matrix v(x, y, z);
 		
 		Matrix model = ModelMatrixStack.top();
 		Matrix proj = ProjMatrixStack.top();
@@ -291,8 +293,7 @@ class Vertex
 		
 		Vertex v(x,y,z,w);
 		
-		cout << "v originally:\n" << v << endl;
-				
+		cout << "v originally:\n" << v << endl;				
 				
 		v = v * model;
 		
@@ -321,42 +322,8 @@ class Vertex
 		z_screen = v.z;
 		w_screen = v.w;
 		
-		/*	
-		x_screen = v.matrix[0][3];
-		y_screen = v.matrix[1][3];
-		z_screen = v.matrix[2][3];
-		*/
-	
 	}
-	
-	/*
-	void convert2ScreenCoord(MGLsize width, MGLsize height)
-	{
-		if (x < 0)
-		{
-			x_screen = width + (int) (x*width);
-			
-		}
-			
-		else
-			x_screen = (int) (x*width);
 		
-		if (y < 0)
-		{
-			y_screen =  height + (int) (y*height);
-			
-		}
-		else
-			y_screen = (int) (y*height);	
-		
-		cout <<  x << endl;
-		
-		cout << "x screen: " << x_screen << ", y screen: " << y_screen << endl;
-		
-	}
-	*/
-	
-	
 };
 
 
@@ -475,15 +442,12 @@ Matrix topMatrix()
 	
 }
 
-
-// from lab 1
-
-// set pixel (x,y) in framebuffer to color col, where
-// col is a float array of three values between 0 and 1
+// set pixel (x,y) in framebuffer to color , where
+// color is a float array of three values between 0 and 1
 // which specify the amount of red, green, and blue to mix (e.g.
 // RED: (1,0,0) GREEN: (0,1,0) BLUE: (0,0,1) 
 // YELLOW: (1,1,0) MAGENTA: (1,0,1) CYAN: (0,1,1)
-// )
+// 
 //
 void set_pixel(int x, int y, MGLpixel c)
 {
@@ -725,9 +689,7 @@ void mglReadPixels(MGLsize width,
 		data[y*width + x] = color;
 		
 	}
-	
-
-	
+		
 }
 
 /**
@@ -749,19 +711,7 @@ void mglBegin(MGLpoly_mode mode)
  */
 void mglEnd()
 {
-	/*
-	if (mgl_ShapeMode == MGL_TRIANGLES)
-	{
-		rasterizeTriangle(320, 240);
-		cout << "Done creating triangle" << endl;
-	}
 	
-	else if (mgl_ShapeMode == MGL_QUADS)
-	{
-		rasterizeQuad(320, 240);
-		cout << "Done creating rectangle" << endl;
-	}
-	*/
 }
 
 /**
