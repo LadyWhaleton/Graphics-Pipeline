@@ -89,12 +89,20 @@ class Matrix
 		result.clearMatrix();
 		
 		// need to reset something to 0.
+		MGLfloat sum = 0;
 		
 		// [ currMatrix ] [ m ]
 		for (int i = 0; i < 4; ++i)
+		{
 			for (int j = 0; j < 4; ++j)
+			{
+				sum = 0;
 				for (int k = 0; k < 4; ++k)
-					result.matrix[i][j] += matrix[i][k] * rhs.matrix[k][j];
+					sum += matrix[i][k] * rhs.matrix[k][j];
+				result.matrix[i][j] = sum;
+			}
+		}
+			
 		return result;
 	}
 	
@@ -189,26 +197,28 @@ class Vertex
 		return *this;
 	}
 	
+	// this operation performs matrix and vector multiplication
 	Vertex operator* (const Matrix& rhs)
 	{
-		MGLfloat newVertex[4] = {x, y, z, w};
+		MGLfloat currVertex[4] = {x, y, z, w};
+		MGLfloat newVertex[4] = {0, 0, 0, 0};
+		
 		MGLfloat sum, val = 0;
 		
 		// [ Vertex ] [ Matrix ]
 		for (int row = 0; row < 4; ++row)
 		{
-			val = newVertex[row];
 			sum = 0;
 			for (int col = 0; col < 4; ++col)
 			{
-				val = newVertex[col];
+				val = currVertex[col];
 				sum += rhs.matrix[row][col] * val;	
 			}
 			
-			
-			
 			newVertex[row] = sum;
+			//cout << "row: " << row << " sum: " << sum << endl;
 		}
+		
 		
 		Vertex v (newVertex[0], newVertex[1], newVertex[2], newVertex[3]);
 		
@@ -242,10 +252,6 @@ class Vertex
 	
 	void scaleToScreen(MGLsize width, MGLsize height)
 	{	
-		// add 1 to x, y, and z
-		x += 1;
-		y += 1;
-		z += 1;
 		
 		x = (x*width)/2;
 		y = (y*height)/2;
@@ -271,6 +277,9 @@ class Vertex
 		Matrix model = ModelMatrixStack.top();
 		Matrix proj = ProjMatrixStack.top();
 		
+		Matrix trans;
+		trans.createTranslater(1, 1, 1);
+		
 		cout << "model:\n" << model << endl;
 		
 		cout << "proj:\n" << proj << endl; 
@@ -287,20 +296,25 @@ class Vertex
 				
 		v = v * model;
 		
-		//cout << "testing model\n" << v << endl;
+		cout << "testing v*model\n" << v << endl;
 		
 		v = v * proj;
 		
-		cout << "testing proj\n" << v << endl;
+		cout << "testing v*proj\n" << v << endl;
 		
-		//v.convert2NDC();
+		// you multiply the vector by the translation matrix 
+		// to handle negatives
+		v = v * trans;
 		
+		cout << "testing v*trans\n" << v << endl;
 
 		v.scaleToScreen(width, height);
-		
 
-		
 		cout << "testing scale\n" << v << endl;
+		
+		v.convert2NDC();
+		
+		cout << "converting to NDC\n" << v << endl;
 		
 		x_screen = v.x;
 		y_screen = v.y;
