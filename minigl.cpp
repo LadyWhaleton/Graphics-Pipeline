@@ -88,6 +88,8 @@ class Matrix
 		Matrix result;
 		result.clearMatrix();
 		
+		// need to reset something to 0.
+		
 		// [ currMatrix ] [ m ]
 		for (int i = 0; i < 4; ++i)
 			for (int j = 0; j < 4; ++j)
@@ -198,14 +200,56 @@ class Vertex
 			val = newVertex[row];
 			sum = 0;
 			for (int col = 0; col < 4; ++col)
-				sum += rhs.matrix[row][col] * val;
-				
+			{
+				val = newVertex[col];
+				sum += rhs.matrix[row][col] * val;	
+			}
+			
+			
+			
 			newVertex[row] = sum;
 		}
 		
 		Vertex v (newVertex[0], newVertex[1], newVertex[2], newVertex[3]);
+		
 		 
 		return v;
+	}
+	
+	void normalize(MGLsize width, MGLsize height)
+	{
+		MGLfloat mag = sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2) + pow(w, 2));
+		
+		if (mag == 0)
+			return;
+			
+		
+		x = x/mag;
+		y = y/mag;
+		z = z/mag;
+		w = w/mag;
+		
+	}
+	
+	// aka divide by w
+	void convert2NDC()
+	{
+		x = x/w;
+		y = y/w;
+		z = z/w;
+		//w = -z;
+	}
+	
+	void scaleToScreen(MGLsize width, MGLsize height)
+	{	
+		// add 1 to x, y, and z
+		x += 1;
+		y += 1;
+		z += 1;
+		
+		x = (x*width)/2;
+		y = (y*height)/2;
+		
 	}
 	
 	// convert world to screen coordinates
@@ -227,15 +271,9 @@ class Vertex
 		Matrix model = ModelMatrixStack.top();
 		Matrix proj = ProjMatrixStack.top();
 		
-		Matrix scale;
-		scale.createScaler(width, height, 1);
+		cout << "model:\n" << model << endl;
 		
-		/*
-		Matrix trans;
-		trans.createTranslater(1, 1, 1);
-		
-		cout << "trans:\n" << trans << endl;
-		*/
+		cout << "proj:\n" << proj << endl; 
 		
 		//cout << "scaling matrix\n" << scale << endl;
 		
@@ -244,16 +282,25 @@ class Vertex
 		
 		Vertex v(x,y,z,w);
 		
+		cout << "v originally:\n" << v << endl;
+				
+				
 		v = v * model;
+		
+		//cout << "testing model\n" << v << endl;
 		
 		v = v * proj;
 		
-		v = v * scale;
+		cout << "testing proj\n" << v << endl;
 		
+		//v.convert2NDC();
 		
-		//v = v * trans;
+
+		v.scaleToScreen(width, height);
 		
-		cout << "testing\n" << v << endl;
+
+		
+		cout << "testing scale\n" << v << endl;
 		
 		x_screen = v.x;
 		y_screen = v.y;
