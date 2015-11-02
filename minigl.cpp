@@ -121,8 +121,20 @@ class Matrix
 		matrix[0][0] = x;
 		matrix[1][1] = y;
 		matrix[2][2] = z;
+		matrix[3][3] = 1;
 	}
+	
+	void createTranslater(MGLfloat X, MGLfloat Y, MGLfloat Z)
+	{
+		matrix[0][0] = 1;
+		matrix[1][1] = 1;
+		matrix[2][2] = 1;
+		matrix[3][3] = 1;
 		
+		matrix[0][3] = X;
+		matrix[1][3] = Y;
+		matrix[2][3] = Z;
+	}	
 	
 	private:
 	void initMatrix (MGLfloat X, MGLfloat Y, MGLfloat Z)
@@ -141,11 +153,20 @@ class Matrix
 class Vertex
 {
 	public:
-	MGLfloat x, y, z;
-	int x_screen, y_screen, z_screen;
+	MGLfloat x, y, z, w;
+	MGLfloat x_screen, y_screen, z_screen, w_screen;
 	
-	Vertex() :x(0), y(0), z(0) {}
-	Vertex(MGLfloat X, MGLfloat Y, MGLfloat Z) :x(X), y(Y), z(Z) {}
+	Vertex() :x(0), y(0), z(0), w(1) {}
+	Vertex(MGLfloat X, MGLfloat Y, MGLfloat Z, MGLfloat W) :x(X), y(Y), z(Z), w(W) {}
+	
+	friend ostream& operator<< (ostream& os, const Vertex& v)
+	{
+		os << "( " << v.x << ", " << v.y << ", " << v.z << ", " << v.w << " ) " << endl;
+		//os << "( " << v.x_screen << ", " << v.y_screen << ", " << v.z_screen << ", " << v.w_screen << ")" << endl;
+		
+		return os;
+		
+	}
 	
 	Vertex& operator= (const Vertex& rhs)
 	{
@@ -155,13 +176,36 @@ class Vertex
 			x = rhs.x;
 			y = rhs.y;
 			z = rhs.z;
+			w = rhs.w;
 			
 			x_screen = rhs.x_screen;
 			y_screen = rhs.y_screen;
 			z_screen = rhs.y_screen;
+			w_screen = rhs.w_screen;
 		}
 		
 		return *this;
+	}
+	
+	Vertex operator* (const Matrix& rhs)
+	{
+		MGLfloat newVertex[4] = {x, y, z, w};
+		MGLfloat sum, val = 0;
+		
+		// [ Vertex ] [ Matrix ]
+		for (int row = 0; row < 4; ++row)
+		{
+			val = newVertex[row];
+			sum = 0;
+			for (int col = 0; col < 4; ++col)
+				sum += rhs.matrix[row][col] * val;
+				
+			newVertex[row] = sum;
+		}
+		
+		Vertex v (newVertex[0], newVertex[1], newVertex[2], newVertex[3]);
+		 
+		return v;
 	}
 	
 	// convert world to screen coordinates
@@ -175,52 +219,56 @@ class Vertex
 	// http://www.falloutsoftware.com/tutorials/gl/gl0.htm
 	// http://www.songho.ca/opengl/gl_transform.html
 	// http://www.learnopengles.com/understanding-opengls-matrices/
-
-	/*
+	
 	void convert2ScreenCoord(MGLsize width, MGLsize height)
 	{
-		
-		// create the matrix representing the vertex
-		Matrix m(x, y, z);
-		
-		cout << "vector:\n" << m << endl;
-		
-		// create the matrix that will scale according to screen size
-		Matrix s;
-		s.createScaler(width/2, height/2, 1);
-		//cout << "s:\n" << s << endl;
-		
-		
-		// obtain the projection matrix from the stack
-		Matrix proj = ProjMatrixStack.top();
-		cout << "projection:\n" << proj << endl;
+		// Matrix v(x, y, z);
 		
 		Matrix model = ModelMatrixStack.top();
-		//cout << model << endl;
+		Matrix proj = ProjMatrixStack.top();
 		
-		// cout << "matrixMode: " << mgl_MatrixMode << endl;
-
+		Matrix scale;
+		scale.createScaler(width, height, 1);
 		
-		//mglMultMatrix(m, t);
-		//mglMultMatrix(m, s);
+		/*
+		Matrix trans;
+		trans.createTranslater(1, 1, 1);
 		
-		mglMultMatrix(m, model);
+		cout << "trans:\n" << trans << endl;
+		*/
 		
-		cout << "vector * model\n" << m;
-
-		mglMultMatrix(m, proj);
+		//cout << "scaling matrix\n" << scale << endl;
 		
-		cout << "vector * projection\n" << m;
+		// TODO: make sure the order of this is ok. Might need to mult
+		// other way around.
+		
+		Vertex v(x,y,z,w);
+		
+		v = v * model;
+		
+		v = v * proj;
+		
+		v = v * scale;
 		
 		
-		// divide by w
+		//v = v * trans;
 		
+		cout << "testing\n" << v << endl;
 		
+		x_screen = v.x;
+		y_screen = v.y;
+		z_screen = v.z;
+		w_screen = v.w;
+		
+		/*	
+		x_screen = v.matrix[0][3];
+		y_screen = v.matrix[1][3];
+		z_screen = v.matrix[2][3];
+		*/
+	
 	}
-	*/
 	
-	
-	
+	/*
 	void convert2ScreenCoord(MGLsize width, MGLsize height)
 	{
 		if (x < 0)
@@ -245,7 +293,7 @@ class Vertex
 		cout << "x screen: " << x_screen << ", y screen: " << y_screen << endl;
 		
 	}
-	
+	*/
 	
 	
 };
@@ -429,7 +477,7 @@ void drawTriangle(float x, float y)
 		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
 		// MGLpixel c = alpha *color + beta*color + gamma*color;
 		
-		set_pixel(x, y, color);
+		set_pixel( (int) x, (int) y, color);
 		
 		/*
 		int position = ((int) y) * width + ((int) x);
@@ -488,7 +536,7 @@ void drawTriangle1(float x, float y)
 		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
 		// MGLpixel c = alpha *color + beta*color + gamma*color;
 		
-		set_pixel(x, y, color);
+		set_pixel( (int) x, (int) y, color);
 		
 		/*
 		int position = ((int) y) * width + ((int) x);
@@ -524,7 +572,7 @@ void drawTriangle2(float x, float y)
 		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
 		// MGLpixel c = alpha *color + beta*color + gamma*color;
 		
-		set_pixel(x, y, color);
+		set_pixel( (int) x, (int) y, color);
 		
 		/*
 		int position = ((int) y) * width + ((int) x);
@@ -670,7 +718,7 @@ void mglVertex2(MGLfloat x,
 		exit(1);
 	}
 	
-	Vertex Vec2(x, y, 0);
+	Vertex Vec2(x, y, 0, 1);
 	vertexList.push_back(Vec2);
 	//cout << "pushing vertex 2D" << endl;
 
@@ -690,7 +738,7 @@ void mglVertex3(MGLfloat x,
 		exit(1);
 	}
 	
-	Vertex Vec3(x, y, z);
+	Vertex Vec3(x, y, z, 1);
 	vertexList.push_back(Vec3);
 	//cout << "pushing vertex 3D" << endl;
 
@@ -982,10 +1030,13 @@ void mglOrtho(MGLfloat left,
 	ortho.matrix[1][3] = t_y;
 	ortho.matrix[2][3] = t_z;
 	
+	// My matrix on top of the stack is getting modified so this is ok
+	
 	if (mgl_MatrixMode == MGL_PROJECTION)
 		mglMultMatrix(ProjMatrixStack.top(), ortho); 
 	else if (mgl_MatrixMode == MGL_MODELVIEW)
 		mglMultMatrix(ModelMatrixStack.top(), ortho);
+
 }
 
 /**
