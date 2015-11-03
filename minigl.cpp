@@ -37,12 +37,21 @@ stack <Matrix> ModelMatrixStack;
 stack <Matrix> ProjMatrixStack;
 
 vector<Pixel> frameBuffer;
+
+vector< vector<Vertex> > shapeList;
 vector<Vertex> vertexList;
 
 void mglMultMatrix(Matrix& left, const Matrix& m);
-Vertex VertexTransform(const Matrix& m, const Vertex& v);
 
 MGLpixel color; // MGLpixel is unsigned int
+
+/**
+ * Standard macro to report errors
+ */
+inline void MGL_ERROR(const char* description) {
+    printf("%s\n", description);
+    exit(1);
+}
 
 // classes I created
 class Matrix
@@ -264,6 +273,8 @@ class Vertex
 		z_screen = z;
 		w_screen = w;
 		
+		cout << "x: "  << x_screen << ", " << "y: " << y << endl;
+		
 	}
 	
 	/* This function, conver2ScreenCoord, converts the world coordinates 
@@ -349,88 +360,78 @@ class BoundingBox
 		: min_x(0), max_x(0), min_y(0), max_y(0)
 	{}
 	
-	void initBB(float width, float height)
+	void initBB(const vector<Vertex>& vl)
 	{
-		min_x = getMin_X();
-		min_y = getMin_Y();
-		max_x = getMax_X();
-		max_y = getMax_Y();
+		min_x = getMin_X(vl);
+		min_y = getMin_Y(vl);
+		max_x = getMax_X(vl);
+		max_y = getMax_Y(vl);
 	}
 	
 	private:
 	// returns the minimum value 
-	float getMin_X()
+	float getMin_X(const vector<Vertex>& vl)
 	{
-		int numVertices = vertexList.size();
+		int numVertices = vl.size();
 		
-		float min = vertexList[0].x_screen;
+		float min = vl[0].x_screen;
 		
 		for (int i = 1; i < numVertices; ++i)
 		{
-			if (vertexList[i].x_screen < min)
-				min = vertexList[i].x_screen;
+			if (vl[i].x_screen < min)
+				min = vl[i].x_screen;
 		}
 		
 		return min;
 		
 	}
 
-	float getMin_Y()
+	float getMin_Y(const vector<Vertex>& vl)
 	{
-		int numVertices = vertexList.size();
+		int numVertices = vl.size();
 		
-		float min = vertexList[0].y_screen;
+		float min = vl[0].y_screen;
 		
 		for (int i = 1; i < numVertices; ++i)
 		{
-			if (vertexList[i].y_screen < min)
-				min = vertexList[i].y_screen;
+			if (vl[i].y_screen < min)
+				min = vl[i].y_screen;
 		}
 		
 		return min;
 	}
 
-	float getMax_X()
+	float getMax_X(const vector<Vertex>& vl)
 	{
-		int numVertices = vertexList.size();
+		int numVertices = vl.size();
 		
-		float max = vertexList[0].x_screen;
+		float max = vl[0].x_screen;
 		
 		for (int i = 1; i < numVertices; ++i)
 		{
-			if (vertexList[i].x_screen > max)
-				max = vertexList[i].x_screen;
+			if (vl[i].x_screen > max)
+				max = vl[i].x_screen;
 		}
 		
 		return max;
 	}
 
-	float getMax_Y()
+	float getMax_Y(const vector<Vertex>& vl)
 	{
-		int numVertices = vertexList.size();
+		int numVertices = vl.size();
 		
-		float max = vertexList[0].y_screen;
+		float max = vl[0].y_screen;
 		
 		for (int i = 1; i < numVertices; ++i)
 		{
-			if (vertexList[i].y_screen > max)
-				max = vertexList[i].y_screen;
+			if (vl[i].y_screen > max)
+				max = vl[i].y_screen;
 		}
 		
 		return max;
 	}
 		
 };
-
-BoundingBox mgl_BoundingBox;
-
-/**
- * Standard macro to report errors
- */
-inline void MGL_ERROR(const char* description) {
-    printf("%s\n", description);
-    exit(1);
-}
 
 Matrix topMatrix()
 {
@@ -457,13 +458,28 @@ void set_pixel(int x, int y, MGLpixel c)
 
 
 // convert each vertex to screen coordinates
-void convert2ScreenCoord(MGLsize width, MGLsize height)
+void convert2ScreenCoord(MGLsize width, MGLsize height, vector <Vertex>& v)
 {
-	int numVertices = vertexList.size();
-	cout << "numVert: " << numVertices << endl;
+	
+	int numVertices = v.size();
 	
 	for (int i = 0; i < numVertices; ++i)
-		vertexList[i].scaleToScreen(width, height);
+		v[i].scaleToScreen(width, height);
+	
+	
+	/*
+	int numShapes = shapeList.size();
+	
+	for (int i = 0; i < numShapes; ++i)
+	{
+		int numVertices = shapeList[i].size();
+		
+		// for each vertex j in the shape i, scale to the screen
+		for (int j = 0; j < numVertices; ++j)
+			shapeList[i][j].scaleToScreen(width, height);
+			
+	}
+	*/
 }
 
 // barycentric coordinate stuff
@@ -507,46 +523,48 @@ void drawTriangle(float x, float y, const Vertex& a, const Vertex &b, const Vert
 	
 }
 
-void rasterizeTriangle(MGLsize width, MGLsize height, const Vertex& a, const Vertex &b, const Vertex &c)
+void rasterizeTriangle(MGLsize width, MGLsize height, const vector<Vertex>& vl)
 {
+	BoundingBox mgl_BoundingBox;
 	
 	// obtain the bounding box in screen coordinates
-	mgl_BoundingBox.initBB(width, height);
+	mgl_BoundingBox.initBB(vl);
 	
 	float x_min = mgl_BoundingBox.min_x;
 	float x_max = mgl_BoundingBox.max_x;
 	float y_min = mgl_BoundingBox.min_y;
 	float y_max = mgl_BoundingBox.max_y;
 	
-	//cout << "rasterizing triangle" << endl;
+	cout << "Rasterizing Triangle" << endl;
 	
 	for (float x = x_min; x <= x_max; ++x)
 		for (float y = y_min; y <= y_max; ++y)
 		{
 			//cout << "x: " << x << " y: " << y << endl;
-			drawTriangle(x, y, a, b, c);
+			drawTriangle(x, y, vl[0], vl[1], vl[2]);
 		}
 }
 
-void rasterizeQuad(MGLsize width, MGLsize height, const Vertex& a, const Vertex &b, const Vertex &c, const Vertex &d)
+void rasterizeQuad(MGLsize width, MGLsize height, const vector<Vertex>& vl)
 {
+	BoundingBox mgl_BoundingBox;
 	
 	// obtain the bounding box in screen coordinates
-	mgl_BoundingBox.initBB(width, height);
+	mgl_BoundingBox.initBB(vl);
 	
 	float x_min = mgl_BoundingBox.min_x;
 	float x_max = mgl_BoundingBox.max_x;
 	float y_min = mgl_BoundingBox.min_y;
 	float y_max = mgl_BoundingBox.max_y;
 	
-	cout << "rasterizing quad" << endl;
+	cout << "Rasterizing Quad" << endl;
 	
 	for (float x = x_min; x <= x_max; ++x)
 		for (float y = y_min; y <= y_max; ++y)
 		{
 			//cout << "x: " << x << " y: " << y << endl;
-			drawTriangle(x, y, a, b, c);
-			drawTriangle(x, y, a, d, c);
+			drawTriangle(x, y, vl[0], vl[1], vl[2]);
+			drawTriangle(x, y, vl[0], vl[3], vl[2]);
 		}
 }
 
@@ -582,9 +600,32 @@ void mglReadPixels(MGLsize width,
 	SCREEN_WIDTH = width;
 	SCREEN_HEIGHT = height;
 	
-	// convert vertices in vertexList to screen coordinates
-	convert2ScreenCoord(width, height);
+	// convert ALL shape vertices screen coordinates
+	// convert2ScreenCoord(width, height);
 	
+	int numShapes = shapeList.size();
+	
+	cout << "Num of Shapes: " << numShapes << endl << endl;
+	
+	for (int i = 0; i < numShapes; ++i)
+	{
+		convert2ScreenCoord(width, height, shapeList[i]);
+		
+		// get the number of vertices of the current shape
+		int numVertices = shapeList[i].size();
+	
+		
+		cout << "Num of Vertices of Shape " << i+1 << ": " << numVertices << endl;
+		
+		if (numVertices == 3)
+			rasterizeTriangle(width, height, shapeList[i]);
+		else if (numVertices == 4)
+			rasterizeQuad(width, height, shapeList[i]);
+			
+		cout << endl;
+	}
+	
+	/*
 	
 	if (mgl_ShapeMode == MGL_TRIANGLES)
 	{
@@ -597,18 +638,23 @@ void mglReadPixels(MGLsize width,
 		rasterizeQuad(width, height, vertexList[0], vertexList[1], vertexList[2], vertexList[3]);
 		cout << "Done creating rectangle" << endl;
 	}
+	*/
 	
 
 	
 	 int size = frameBuffer.size();
+	 
 	 for (int i = 0; i < size; ++i)
 	 {
 		int x = frameBuffer[i].x;
 		int y = frameBuffer[i].y;
+		
 		// MGLpixel c = frameBuffer[i].pcolor;
 		data[y*width + x] = color;
 		
 	}
+	
+	shapeList.clear();
 		
 }
 
@@ -631,6 +677,10 @@ void mglBegin(MGLpoly_mode mode)
  */
 void mglEnd()
 {
+	// add all of these vertices to a Shape
+	shapeList.push_back(vertexList);
+	
+	vertexList.clear();
 	
 }
 
