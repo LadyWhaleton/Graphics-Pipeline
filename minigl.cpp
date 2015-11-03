@@ -18,6 +18,7 @@
 #include <iostream>
 #include <stack>
 #include <vector>
+#include <algorithm>
 #include "math.h"
 
 using namespace std;
@@ -37,6 +38,7 @@ stack <Matrix> ModelMatrixStack;
 stack <Matrix> ProjMatrixStack;
 
 vector<Pixel> frameBuffer;
+vector<Pixel> zBuffer;
 
 vector< vector<Vertex> > shapeList;
 vector<Vertex> vertexList;
@@ -235,21 +237,6 @@ class Vertex
 		return v;
 	}
 	
-	void normalize(MGLsize width, MGLsize height)
-	{
-		MGLfloat mag = sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2) + pow(w, 2));
-		
-		if (mag == 0)
-			return;
-			
-		
-		x = x/mag;
-		y = y/mag;
-		z = z/mag;
-		w = w/mag;
-		
-	}
-	
 	/* This function converts world to screen coordinates.
 	 * It should be called when you're about to rasterize the
 	 * triangle or quadrilateral.
@@ -269,6 +256,9 @@ class Vertex
 		y = y/w;
 		z = z/w;
 		w = w/w;
+		
+		if (x > width)
+			x = width;
 		
 		x_screen = x;
 		y_screen = y;
@@ -313,15 +303,15 @@ class Vertex
 		
 		Vertex v(x,y,z,w, vColor);
 		
-		cout << "v originally:\n" << v << endl;				
+		//cout << "v originally:\n" << v << endl;				
 				
 		v = v * model;
 		
-		cout << "testing v*model\n" << v << endl;
+		//cout << "testing v*model\n" << v << endl;
 		
 		v = v * proj;
 		
-		cout << "testing v*proj\n" << v << endl;
+		//cout << "testing v*proj\n" << v << endl;
 		
 		// you multiply the vector by the translation matrix 
 		// to handle negatives
@@ -346,9 +336,10 @@ class Pixel
 	public:
 	int x, y;
 	MGLpixel pcolor;
+	MGLfloat z;
 	
-	Pixel(int X, int Y, MGLpixel c)
-		: x(X), y(Y), pcolor(c)
+	Pixel(int X, int Y, MGLpixel c, MGLfloat Z)
+		: x(X), y(Y), pcolor(c), z(Z)
 	{}
 };
 
@@ -452,10 +443,11 @@ Matrix topMatrix()
 // YELLOW: (1,1,0) MAGENTA: (1,0,1) CYAN: (0,1,1)
 // 
 //
-void set_pixel(int x, int y, MGLpixel c)
+void set_pixel(int x, int y, MGLpixel c, MGLfloat z)
 {
-    Pixel pixy(x, y, c);
+    Pixel pixy(x, y, c, z);
     frameBuffer.push_back(pixy);
+    zBuffer.push_back (pixy);
 }
 
 
@@ -473,6 +465,33 @@ void convert2ScreenCoord(MGLsize width, MGLsize height, vector <Vertex>& v)
 float f (float x, float y, float x_b, float y_b, float x_c, float y_c)
 {
 	return (y_b - y_c)*x + (x_c - x_b)*y + (x_b*y_c) - (x_c*y_b);
+}
+
+// returns the new color 
+MGLpixel mixColors(float alpha, float beta, float gamma, MGLpixel vColor1, MGLpixel vColor2, MGLpixel vColor3)
+{
+	MGLpixel vColor1_Red = MGL_GET_RED(vColor1);
+	MGLpixel vColor1_Green = MGL_GET_GREEN(vColor1);
+	MGLpixel vColor1_Blue = MGL_GET_BLUE(vColor1);
+	
+	MGLpixel vColor2_Red = MGL_GET_RED(vColor2);
+	MGLpixel vColor2_Green = MGL_GET_GREEN(vColor2);
+	MGLpixel vColor2_Blue = MGL_GET_BLUE(vColor2);
+	
+	MGLpixel vColor3_Red = MGL_GET_RED(vColor3);
+	MGLpixel vColor3_Green = MGL_GET_GREEN(vColor3);
+	MGLpixel vColor3_Blue = MGL_GET_BLUE(vColor3);
+	
+	float newRed = alpha*vColor1_Red + beta*vColor2_Red + gamma*vColor3_Red;
+	float newBlue = alpha*vColor1_Blue + beta*vColor2_Blue + gamma*vColor3_Blue; 
+	float newGreen = alpha*vColor1_Green + beta*vColor2_Green + gamma*vColor3_Green; 
+	
+	MGLpixel newColor = 0;
+	MGL_SET_RED(newColor, (int) newRed);
+	MGL_SET_GREEN(newColor, (int) newGreen);
+	MGL_SET_BLUE(newColor, (int) newBlue);
+	
+	return newColor;	
 }
 
 // determines if points are inside the triangle
@@ -497,15 +516,14 @@ void drawTriangle(float x, float y, const Vertex& a, const Vertex &b, const Vert
 	// if it's inside the triangle
 	if (alpha >= 0 && beta >= 0 && gamma >= 0)
 	{
-		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
-		// MGLpixel c = alpha *color + beta*color + gamma*color;
+		 MGLpixel pixelColor = mixColors(alpha, beta, gamma, a.vColor, b.vColor, c.vColor);
 		
-		set_pixel( (int) x, (int) y, a.vColor);
+		// z*alpha + z*beta + z*gamma
 		
-		/*
-		int position = ((int) y) * width + ((int) x);
-		data[position] = color;
-		*/
+		MGLfloat newZ = alpha*a.z_screen + beta*b.z_screen + gamma*c.z_screen;
+		
+		set_pixel( (int) x, (int) y, pixelColor, newZ);
+
 	}
 	
 }
@@ -554,6 +572,10 @@ void rasterizeQuad(MGLsize width, MGLsize height, const vector<Vertex>& vl)
 			drawTriangle(x, y, vl[0], vl[3], vl[2]);
 		}
 }
+
+
+// want to sort Z by descending order
+bool sortByZ(Pixel a, Pixel b) { return a.z > b.z; }
 
 /**
  * Read pixel data starting with the pixel at coordinates
@@ -610,6 +632,22 @@ void mglReadPixels(MGLsize width,
 		cout << endl;
 	}	
 
+	// sort pixel by pixel. Higher z value on top.
+	sort(zBuffer.begin(), zBuffer.end(), sortByZ);
+
+	int size = zBuffer.size();
+	 
+	 for (int i = 0; i < size; ++i)
+	 {
+		int x = zBuffer[i].x;
+		int y = zBuffer[i].y;
+		
+		MGLpixel c = zBuffer[i].pcolor;
+		data[y*width + x] = c;
+		
+	}
+
+	/*
 	 int size = frameBuffer.size();
 	 
 	 for (int i = 0; i < size; ++i)
@@ -621,6 +659,7 @@ void mglReadPixels(MGLsize width,
 		data[y*width + x] = c;
 		
 	}
+	*/
 	
 	shapeList.clear();
 		
@@ -848,8 +887,6 @@ void mglTranslate(MGLfloat x,
                   MGLfloat z)
 {
 	
-	cout << "translating...\n";
-	
 	Matrix t;
 	t.createTranslater(x, y, z);
 	
@@ -860,10 +897,23 @@ void mglTranslate(MGLfloat x,
 	else if (mgl_MatrixMode == MGL_MODELVIEW)
 	{
 		mglMultMatrix(ModelMatrixStack.top(), t);
-		cout << "model translate:\n" << ModelMatrixStack.top() << endl;
 	}
 	
 }
+
+void normalize(MGLfloat &x, MGLfloat &y, MGLfloat &z)
+{
+	MGLfloat mag = sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2) );
+		
+	if (mag == 0)
+		return;
+			
+		
+	x = x/mag;
+	y = y/mag;
+	z = z/mag;	
+}
+
 
 /**
  * Multiply the current matrix by the rotation matrix
@@ -879,6 +929,7 @@ void mglRotate(MGLfloat angle,
 	MGLfloat s = sin(angle * M_PI / 180);
 	MGLfloat c = cos(angle * M_PI / 180);	
 	
+	normalize(x, y, z);
 	Matrix r(0, 0, 0);
 	
 	r.matrix[0][0] = x*x * (1 - c) + c;
