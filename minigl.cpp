@@ -26,9 +26,6 @@ using namespace std;
 int mgl_ShapeMode;
 int mgl_MatrixMode;
 
-int SCREEN_WIDTH = 0;
-int SCREEN_HEIGHT = 0;
-
 class Matrix;
 class Vertex;
 class Pixel;
@@ -189,8 +186,6 @@ class Vertex
 	friend ostream& operator<< (ostream& os, const Vertex& v)
 	{
 		os << "( " << v.x << ", " << v.y << ", " << v.z << ", " << v.w << " ) " << endl;
-		//os << "( " << v.x_screen << ", " << v.y_screen << ", " << v.z_screen << ", " << v.w_screen << ")" << endl;
-		
 		return os;
 		
 	}
@@ -221,6 +216,8 @@ class Vertex
 	/* This operation performs matrix and vector multiplication.
 	 * The vector must be on the left of *, and the matrix must be on
 	 * the right.
+	 * 
+	 * It follows the matrix * vector order of multiplication.
 	 */
 	Vertex operator* (const Matrix& rhs)
 	{
@@ -243,10 +240,7 @@ class Vertex
 			//cout << "row: " << row << " sum: " << sum << endl;
 		}
 		
-		
 		Vertex v (newVertex[0], newVertex[1], newVertex[2], newVertex[3]);
-		
-		 
 		return v;
 	}
 	
@@ -258,11 +252,9 @@ class Vertex
 	 * it has been passed through mglReadPixels. 
 	 */	
 	void scaleToScreen(MGLsize width, MGLsize height)
-	{	
-		
+	{			
 		x = (x*width)/2;
 		y = (y*height)/2;
-		
 		
 		// convert to NDC, aka divide by w
 		x = x/w;
@@ -279,7 +271,6 @@ class Vertex
 		w_screen = w;
 		
 		cout << "x: "  << x_screen << ", " << "y: " << y << endl;
-		
 	}
 	
 	/* This function, conver2ScreenCoord, converts the world coordinates 
@@ -300,47 +291,29 @@ class Vertex
 	*/ 
 	void applyTransformations()
 	{
-		
 		Matrix model = ModelMatrixStack.top();
 		Matrix proj = ProjMatrixStack.top();
 		
 		Matrix trans;
 		trans.createTranslater(1, 1, 1);
-		
-		//cout << "model:\n" << model << endl;
-		
-		//cout << "proj:\n" << proj << endl; 
-		
-		Vertex v(x,y,z,w);
-		
-		//cout << "v originally:\n" << v << endl;				
+			
+		Vertex v(x,y,z,w);			
 				
 		v = v * model;
-		
-		//cout << "testing v*model\n" << v << endl;
-		
 		v = v * proj;
-		
-		//cout << "testing v*proj\n" << v << endl;
 		
 		// you multiply the vector by the translation matrix 
 		// to handle negatives
 		v = v * trans;
-		
-		//cout << "testing v*trans\n" << v << endl;
 		
 		// update the x, y, z, w values.
 		x = v.x;
 		y = v.y;
 		z = v.z;
 		w = v.w;
-		
 	}
-		
 };
 
-
-// pixel contains the coordinates, 
 class Pixel
 {
 	public:
@@ -376,7 +349,6 @@ class BoundingBox
 	float getMin_X(const vector<Vertex>& vl)
 	{
 		int numVertices = vl.size();
-		
 		float min = vl[0].x_screen;
 		
 		for (int i = 1; i < numVertices; ++i)
@@ -386,13 +358,11 @@ class BoundingBox
 		}
 		
 		return min;
-		
 	}
 
 	float getMin_Y(const vector<Vertex>& vl)
 	{
 		int numVertices = vl.size();
-		
 		float min = vl[0].y_screen;
 		
 		for (int i = 1; i < numVertices; ++i)
@@ -406,8 +376,7 @@ class BoundingBox
 
 	float getMax_X(const vector<Vertex>& vl)
 	{
-		int numVertices = vl.size();
-		
+		int numVertices = vl.size();	
 		float max = vl[0].x_screen;
 		
 		for (int i = 1; i < numVertices; ++i)
@@ -422,7 +391,6 @@ class BoundingBox
 	float getMax_Y(const vector<Vertex>& vl)
 	{
 		int numVertices = vl.size();
-		
 		float max = vl[0].y_screen;
 		
 		for (int i = 1; i < numVertices; ++i)
@@ -436,23 +404,14 @@ class BoundingBox
 		
 };
 
-Matrix topMatrix()
-{
-	if (mgl_MatrixMode == MGL_MODELVIEW && !ModelMatrixStack.empty())
-		return ModelMatrixStack.top();
-	
-	else if (mgl_MatrixMode == MGL_PROJECTION && !ProjMatrixStack.empty())
-		return ProjMatrixStack.top();
-	
-}
-
-// set pixel (x,y) in framebuffer to color , where
-// color is a float array of three values between 0 and 1
-// which specify the amount of red, green, and blue to mix (e.g.
-// RED: (1,0,0) GREEN: (0,1,0) BLUE: (0,0,1) 
-// YELLOW: (1,1,0) MAGENTA: (1,0,1) CYAN: (0,1,1)
-// 
-//
+/* set_pixel takes in (x, y) which determines where on the screen
+ * we want to draw the pixel. 
+ * 
+ * z is used for the zBuffer, which will 
+ * later be sorted to give the illusion of layers / clipping.
+ * 
+ * c is the color we will use for the pixel at (x, y).
+ */ 
 void set_pixel(int x, int y, MGLpixel c, MGLfloat z)
 {
     Pixel pixy(x, y, c, z);
@@ -464,7 +423,6 @@ void set_pixel(int x, int y, MGLpixel c, MGLfloat z)
 // convert each vertex to screen coordinates
 void convert2ScreenCoord(MGLsize width, MGLsize height, vector <Vertex>& v)
 {
-	
 	int numVertices = v.size();
 	
 	for (int i = 0; i < numVertices; ++i)
@@ -511,21 +469,24 @@ void drawTriangle(float x, float y, const Vertex& a, const Vertex &b, const Vert
 	float beta = f(x, y, x_c, y_c, x_a, y_a) / f(x_b, y_b, x_c, y_c, x_a, y_a);
 	float gamma = f(x, y, x_a, y_a, x_b, y_b) / f(x_c, y_c, x_a, y_a, x_b, y_b);
 	
-	// if it's inside the triangle
+	// If it's inside the triangle
 	if (alpha >= 0 && beta >= 0 && gamma >= 0)
 	{
-		 MGLpixel pixelColor = mixColors(alpha, beta, gamma, a.vColor, b.vColor, c.vColor);
-		
-		// z*alpha + z*beta + z*gamma
-		
+		MGLpixel pixelColor = mixColors(alpha, beta, gamma, a.vColor, b.vColor, c.vColor);
 		MGLfloat newZ = alpha*a.z_screen + beta*b.z_screen + gamma*c.z_screen;
 		
 		set_pixel( (int) x, (int) y, pixelColor, newZ);
-
 	}
 	
 }
 
+/* vl contains the list of vertices.
+ * width is the screen width, and height is the screen height.
+ * 
+ * After we set up the bounding box, we look at all of the pixels between
+ * x_min, x_max, y_min, and y_max via a for loop. Inside the loop, I call
+ * drawTriangle which preps up the values to be used in barycentric coordinates.
+ */
 void rasterizeTriangle(MGLsize width, MGLsize height, const vector<Vertex>& vl)
 {
 	BoundingBox mgl_BoundingBox;
@@ -542,12 +503,19 @@ void rasterizeTriangle(MGLsize width, MGLsize height, const vector<Vertex>& vl)
 	
 	for (float x = x_min; x <= x_max; ++x)
 		for (float y = y_min; y <= y_max; ++y)
-		{
-			//cout << "x: " << x << " y: " << y << endl;
 			drawTriangle(x, y, vl[0], vl[1], vl[2]);
-		}
 }
 
+/* vl contains the list of vertices.
+ * width is the screen width, and height is the screen height.
+ * 
+ * After we set up the bounding box, we look at all of the pixels between
+ * x_min, x_max, y_min, and y_max via a for loop. Inside the loop, I call
+ * drawTriangle which preps up the values to be used in barycentric coordinates.
+ * 
+ * I call drawTriangle twice because you can represent a quadrilateral
+ * by creating two triangles that share two vertices.
+ */ 
 void rasterizeQuad(MGLsize width, MGLsize height, const vector<Vertex>& vl)
 {
 	BoundingBox mgl_BoundingBox;
@@ -565,7 +533,6 @@ void rasterizeQuad(MGLsize width, MGLsize height, const vector<Vertex>& vl)
 	for (float x = x_min; x <= x_max; ++x)
 		for (float y = y_min; y <= y_max; ++y)
 		{
-			//cout << "x: " << x << " y: " << y << endl;
 			drawTriangle(x, y, vl[0], vl[1], vl[2]);
 			drawTriangle(x, y, vl[0], vl[3], vl[2]);
 		}
@@ -602,10 +569,6 @@ void mglReadPixels(MGLsize width,
 	// data[0] contains the point (0,0),
 	// data[1] contains the point (1,0),
 	// data[2] contains the point (2,0), etc.
-	
-	// set these for the other functions
-	SCREEN_WIDTH = width;
-	SCREEN_HEIGHT = height;
 	
 	int numShapes = shapeList.size();
 	
@@ -682,8 +645,7 @@ void mglBegin(MGLpoly_mode mode)
  */
 void mglEnd()
 {
-	// add all of these vertices to a Shape
-	
+	// Add all of these vertices to a Shape
 	if(!vertexList.empty())
 	{
 		shapeList.push_back(vertexList);
@@ -723,9 +685,8 @@ void mglVertex2(MGLfloat x,
 	
 	Vertex Vec2(x, y, 0, 1);
 	
-	// apply the transformations before you push to vertexList
+	// Apply the transformations before you push to vertexList
 	Vec2.applyTransformations();
-	
 	vertexList.push_back(Vec2);
 
 }
@@ -758,9 +719,8 @@ void mglVertex3(MGLfloat x,
 	
 	Vertex Vec3(x, y, z, 1);
 	
-	// apply the transformations before you push to vertexList
+	// Apply the transformations before you push to vertexList
 	Vec3.applyTransformations();
-	
 	vertexList.push_back(Vec3);
 }
 
@@ -786,11 +746,11 @@ void mglMatrixMode(MGLmatrix_mode mode)
  */
 void mglPushMatrix()
 {
-	// depending on which mode you're on, you want to push the matrix onto
+	// Depending on which mode you're on, you want to push the matrix onto
 	// a specific stack. So you don't accidentally modify the projection matrix
-	// when you wanted to modify your shape/object
+	// when you wanted to modify your model matrix.
 	
-	// push a copy of the top matrix
+	// Push a copy of the top matrix
 	if (mgl_MatrixMode == MGL_MODELVIEW && !ModelMatrixStack.empty())
 		ModelMatrixStack.push(ModelMatrixStack.top());
 	
@@ -804,9 +764,6 @@ void mglPushMatrix()
  */
 void mglPopMatrix()
 {
-	// depending on which mode you're on, you want to pop the matrix from
-	// a specific stack. So you don't accidentally pop the projection matrix
-	// when you wanted to pop your shape/object
 	if (mgl_MatrixMode == MGL_MODELVIEW && !ModelMatrixStack.empty())
 	{
 		if (!ModelMatrixStack.empty())
@@ -818,7 +775,6 @@ void mglPopMatrix()
 		if (!ProjMatrixStack.empty())
 			ProjMatrixStack.pop();
 	}
-
 }
 
 /**
@@ -826,8 +782,8 @@ void mglPopMatrix()
  */
 void mglLoadIdentity()
 {
-	// sets the matrix currently on the top of the stack to the identity matrix
-	// this function seems to appear after mglModelView calls
+	// Sets the matrix currently on the top of the stack to the identity matrix
+	// This function seems to appear after mglMatrixMode calls.
 	
 	Matrix Identity;
 	Identity.matrix[0][0] = 1;
@@ -867,11 +823,8 @@ void mglLoadIdentity()
  * where ai is the i'th entry of the array.
  */
 void mglLoadMatrix(const Matrix& m)
-{
-	// a specific stack. So you don't accidentally modify the projection matrix
-	// when you wanted to modify your shape/object
-	
-	// push a copy of the top matrix
+{	
+	// Push a copy of the matrix m onto the stack
 	if (mgl_MatrixMode == MGL_MODELVIEW && !ModelMatrixStack.empty())
 		ModelMatrixStack.push(m);
 	
@@ -913,28 +866,23 @@ void mglTranslate(MGLfloat x,
                   MGLfloat y,
                   MGLfloat z)
 {
-	
 	Matrix t;
 	t.createTranslater(x, y, z);
 	
 	if (mgl_MatrixMode == MGL_PROJECTION)
-	{
 		mglMultMatrix(ProjMatrixStack.top(), t); 
-	}
+		
 	else if (mgl_MatrixMode == MGL_MODELVIEW)
-	{
-		mglMultMatrix(ModelMatrixStack.top(), t);
-	}
-	
+		mglMultMatrix(ModelMatrixStack.top(), t);	
 }
 
+// This function is used for mglRotation.
 void normalize(MGLfloat &x, MGLfloat &y, MGLfloat &z)
 {
 	MGLfloat mag = sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2) );
 		
 	if (mag == 0)
 		return;
-			
 		
 	x = x/mag;
 	y = y/mag;
@@ -1002,8 +950,8 @@ void mglScale(MGLfloat x,
  * Multiply the current matrix by the perspective matrix
  * with the given clipping plane coordinates.
  */
- // this handles the 3D stuff for a camera so objects in a scene
- // apear to tilt 
+ // This handles the 3D stuff for a camera so objects in a scene
+ // apear to be tilted. 
  // https://www.opengl.org/sdk/docs/man2/xhtml/glFrustum.xml
 void mglFrustum(MGLfloat left,
                 MGLfloat right,
@@ -1072,13 +1020,10 @@ void mglOrtho(MGLfloat left,
 	ortho.matrix[1][3] = t_y;
 	ortho.matrix[2][3] = t_z;
 	
-	// My matrix on top of the stack is getting modified so this is ok
-	
 	if (mgl_MatrixMode == MGL_PROJECTION)
 		mglMultMatrix(ProjMatrixStack.top(), ortho); 
 	else if (mgl_MatrixMode == MGL_MODELVIEW)
 		mglMultMatrix(ModelMatrixStack.top(), ortho);
-
 }
 
 /**
@@ -1091,5 +1036,4 @@ void mglColor(MGLbyte red,
 	RGB[0] = red;
 	RGB[1] = green;
 	RGB[2] = blue;
-	
 }
