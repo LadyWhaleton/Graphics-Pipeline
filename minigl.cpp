@@ -59,7 +59,6 @@ class Matrix
 	public:
 	MGLfloat matrix[4][4];
 	
-	// by default, it's the identity matrix
 	Matrix()
 	{
 		clearMatrix();
@@ -85,6 +84,7 @@ class Matrix
 		return *this;
 	}
 	
+	// Currently unused. mglMultMatrix is used instead.
 	Matrix operator* (const Matrix& rhs)
 	{
 		Matrix result;
@@ -273,8 +273,8 @@ class Vertex
 		cout << "x: "  << x_screen << ", " << "y: " << y << endl;
 	}
 	
-	/* This function, conver2ScreenCoord, converts the world coordinates 
-	* x, y, z, w to the screen coordinates. 
+	/* This function, applyTransformation, applys transformations to
+	* the vertex (x, y, z, w).
 	* 
 	* For my implementation, the order of multiplication is
 	* 1. vector * model matrix
@@ -558,22 +558,24 @@ void mglReadPixels(MGLsize width,
                    MGLsize height,
                    MGLpixel *data)
 {
-	// this function is called in main. it colors all of the pixels
-	// that you want it to all at once. Need to store these pixels with the 
-	// corresponding color somehow
-	
-	
-	// data contains buffer of coordinates for each pixel on screen
-	// data is an 1D array containing x,y coordinates of the screen
-	// for ex: starting from bottom left. 
-	// data[0] contains the point (0,0),
-	// data[1] contains the point (1,0),
-	// data[2] contains the point (2,0), etc.
+	/* This function is called in main. It colors all of the pixels
+	 * that you want it to all at once.
+	 * data is a 1D of coordinates for each pixel starting from the 
+	 * bottom lefthand corner of the screen.
+	 * for example:
+	 * data[0] contains the point (0,0),
+	 * data[1] contains the point (1,0),
+	 * data[2] contains the point (2,0), etc.
+	 * data[y*width] contains row y.
+	 * data[y*width + x] indicates the column x.
+	 * data[width*height] is the top right corner of the screen.
+	 */
 	
 	int numShapes = shapeList.size();
 	
 	cout << "Num of Shapes: " << numShapes << endl << endl;
 	
+	// for each shape
 	for (int i = 0; i < numShapes; ++i)
 	{
 		// convert vertices of shape i to screen coordinates
@@ -582,9 +584,9 @@ void mglReadPixels(MGLsize width,
 		// get the number of vertices of the current shape
 		int numVertices = shapeList[i].size();
 	
-		
 		cout << "Num of Vertices of Shape " << i+1 << ": " << numVertices << endl;
 		
+		// Rasterize the shape according to the number of vertices.
 		if (numVertices == 3)
 			rasterizeTriangle(width, height, shapeList[i]);
 		else if (numVertices == 4)
@@ -593,7 +595,7 @@ void mglReadPixels(MGLsize width,
 		cout << endl;
 	}	
 
-	// sort pixel by pixel. Higher z value on top.
+	// sort the zBuffer by descending order.
 	sort(zBuffer.begin(), zBuffer.end(), sortByZ);
 
 	int size = zBuffer.size();
@@ -738,11 +740,6 @@ void mglMatrixMode(MGLmatrix_mode mode)
 /**
  * Push a copy of the current matrix onto the stack for the
  * current matrix mode.
- * 
- * glPushMatrix(); and glPopMatrix(); are used when you want to transform
- * an object, such as scaling, translating, or rotating. 
- * glPushMatrix(); is placed before the code to transform the object and
- * glPopMatrix(); is placed after the code to draw the object.
  */
 void mglPushMatrix()
 {
