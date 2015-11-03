@@ -168,9 +168,10 @@ class Vertex
 	public:
 	MGLfloat x, y, z, w;
 	MGLfloat x_screen, y_screen, z_screen, w_screen;
+	MGLpixel vColor;
 	
-	Vertex() :x(0), y(0), z(0), w(1) {}
-	Vertex(MGLfloat X, MGLfloat Y, MGLfloat Z, MGLfloat W) :x(X), y(Y), z(Z), w(W) {}
+	Vertex() :x(0), y(0), z(0), w(1), vColor(color) {}
+	Vertex(MGLfloat X, MGLfloat Y, MGLfloat Z, MGLfloat W, MGLpixel c) :x(X), y(Y), z(Z), w(W), vColor(c) {}
 	
 	friend ostream& operator<< (ostream& os, const Vertex& v)
 	{
@@ -191,6 +192,7 @@ class Vertex
 			y = rhs.y;
 			z = rhs.z;
 			w = rhs.w;
+			vColor = rhs.vColor;
 			
 			x_screen = rhs.x_screen;
 			y_screen = rhs.y_screen;
@@ -227,7 +229,7 @@ class Vertex
 		}
 		
 		
-		Vertex v (newVertex[0], newVertex[1], newVertex[2], newVertex[3]);
+		Vertex v (newVertex[0], newVertex[1], newVertex[2], newVertex[3], vColor);
 		
 		 
 		return v;
@@ -309,7 +311,7 @@ class Vertex
 		// TODO: make sure the order of this is ok. Might need to mult
 		// other way around.
 		
-		Vertex v(x,y,z,w);
+		Vertex v(x,y,z,w, vColor);
 		
 		cout << "v originally:\n" << v << endl;				
 				
@@ -465,21 +467,6 @@ void convert2ScreenCoord(MGLsize width, MGLsize height, vector <Vertex>& v)
 	
 	for (int i = 0; i < numVertices; ++i)
 		v[i].scaleToScreen(width, height);
-	
-	
-	/*
-	int numShapes = shapeList.size();
-	
-	for (int i = 0; i < numShapes; ++i)
-	{
-		int numVertices = shapeList[i].size();
-		
-		// for each vertex j in the shape i, scale to the screen
-		for (int j = 0; j < numVertices; ++j)
-			shapeList[i][j].scaleToScreen(width, height);
-			
-	}
-	*/
 }
 
 // barycentric coordinate stuff
@@ -513,7 +500,7 @@ void drawTriangle(float x, float y, const Vertex& a, const Vertex &b, const Vert
 		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
 		// MGLpixel c = alpha *color + beta*color + gamma*color;
 		
-		set_pixel( (int) x, (int) y, color);
+		set_pixel( (int) x, (int) y, a.vColor);
 		
 		/*
 		int position = ((int) y) * width + ((int) x);
@@ -600,15 +587,13 @@ void mglReadPixels(MGLsize width,
 	SCREEN_WIDTH = width;
 	SCREEN_HEIGHT = height;
 	
-	// convert ALL shape vertices screen coordinates
-	// convert2ScreenCoord(width, height);
-	
 	int numShapes = shapeList.size();
 	
 	cout << "Num of Shapes: " << numShapes << endl << endl;
 	
 	for (int i = 0; i < numShapes; ++i)
 	{
+		// convert vertices of shape i to screen coordinates
 		convert2ScreenCoord(width, height, shapeList[i]);
 		
 		// get the number of vertices of the current shape
@@ -623,25 +608,8 @@ void mglReadPixels(MGLsize width,
 			rasterizeQuad(width, height, shapeList[i]);
 			
 		cout << endl;
-	}
-	
-	/*
-	
-	if (mgl_ShapeMode == MGL_TRIANGLES)
-	{
-		rasterizeTriangle(width, height, vertexList[0], vertexList[1], vertexList[2]);
-		cout << "Done creating triangle" << endl;
-	}
-	
-	else if (mgl_ShapeMode == MGL_QUADS)
-	{
-		rasterizeQuad(width, height, vertexList[0], vertexList[1], vertexList[2], vertexList[3]);
-		cout << "Done creating rectangle" << endl;
-	}
-	*/
-	
+	}	
 
-	
 	 int size = frameBuffer.size();
 	 
 	 for (int i = 0; i < size; ++i)
@@ -649,8 +617,8 @@ void mglReadPixels(MGLsize width,
 		int x = frameBuffer[i].x;
 		int y = frameBuffer[i].y;
 		
-		// MGLpixel c = frameBuffer[i].pcolor;
-		data[y*width + x] = color;
+		MGLpixel c = frameBuffer[i].pcolor;
+		data[y*width + x] = c;
 		
 	}
 	
@@ -699,7 +667,7 @@ void mglVertex2(MGLfloat x,
 		exit(1);
 	}
 	
-	Vertex Vec2(x, y, 0, 1);
+	Vertex Vec2(x, y, 0, 1, color);
 	
 	// apply the transformations before you push to vertexList
 	Vec2.applyTransformations();
@@ -722,7 +690,7 @@ void mglVertex3(MGLfloat x,
 		exit(1);
 	}
 	
-	Vertex Vec3(x, y, z, 1);
+	Vertex Vec3(x, y, z, 1, color);
 	
 	// apply the transformations before you push to vertexList
 	Vec3.applyTransformations();
