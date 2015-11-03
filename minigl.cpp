@@ -45,7 +45,7 @@ vector<Vertex> vertexList;
 
 void mglMultMatrix(Matrix& left, const Matrix& m);
 
-MGLpixel color; // MGLpixel is unsigned int
+MGLpixel RGB[3]; // MGLpixel is unsigned int
 
 /**
  * Standard macro to report errors
@@ -170,10 +170,21 @@ class Vertex
 	public:
 	MGLfloat x, y, z, w;
 	MGLfloat x_screen, y_screen, z_screen, w_screen;
-	MGLpixel vColor;
+	MGLpixel vColor[3];
 	
-	Vertex() :x(0), y(0), z(0), w(1), vColor(color) {}
-	Vertex(MGLfloat X, MGLfloat Y, MGLfloat Z, MGLfloat W, MGLpixel c) :x(X), y(Y), z(Z), w(W), vColor(c) {}
+	Vertex() :x(0), y(0), z(0), w(1)
+	{
+		vColor[0] = RGB[0];
+		vColor[1] = RGB[1];
+		vColor[2] = RGB[2];
+	}
+	
+	Vertex(MGLfloat X, MGLfloat Y, MGLfloat Z, MGLfloat W) :x(X), y(Y), z(Z), w(W)
+	{
+		vColor[0] = RGB[0];
+		vColor[1] = RGB[1];
+		vColor[2] = RGB[2];
+	}
 	
 	friend ostream& operator<< (ostream& os, const Vertex& v)
 	{
@@ -194,7 +205,9 @@ class Vertex
 			y = rhs.y;
 			z = rhs.z;
 			w = rhs.w;
-			vColor = rhs.vColor;
+			vColor[0] = rhs.vColor[0];
+			vColor[1] = rhs.vColor[1];
+			vColor[2] = rhs.vColor[2];
 			
 			x_screen = rhs.x_screen;
 			y_screen = rhs.y_screen;
@@ -231,7 +244,7 @@ class Vertex
 		}
 		
 		
-		Vertex v (newVertex[0], newVertex[1], newVertex[2], newVertex[3], vColor);
+		Vertex v (newVertex[0], newVertex[1], newVertex[2], newVertex[3]);
 		
 		 
 		return v;
@@ -298,10 +311,7 @@ class Vertex
 		
 		//cout << "proj:\n" << proj << endl; 
 		
-		// TODO: make sure the order of this is ok. Might need to mult
-		// other way around.
-		
-		Vertex v(x,y,z,w, vColor);
+		Vertex v(x,y,z,w);
 		
 		//cout << "v originally:\n" << v << endl;				
 				
@@ -335,11 +345,11 @@ class Pixel
 {
 	public:
 	int x, y;
-	MGLpixel pcolor;
+	MGLpixel pColor;
 	MGLfloat z;
 	
 	Pixel(int X, int Y, MGLpixel c, MGLfloat Z)
-		: x(X), y(Y), pcolor(c), z(Z)
+		: x(X), y(Y), pColor(c), z(Z)
 	{}
 };
 
@@ -468,28 +478,16 @@ float f (float x, float y, float x_b, float y_b, float x_c, float y_c)
 }
 
 // returns the new color 
-MGLpixel mixColors(float alpha, float beta, float gamma, MGLpixel vColor1, MGLpixel vColor2, MGLpixel vColor3)
+MGLpixel mixColors(float alpha, float beta, float gamma, const MGLpixel* vColor1, const MGLpixel* vColor2, const MGLpixel* vColor3)
 {
-	MGLpixel vColor1_Red = MGL_GET_RED(vColor1);
-	MGLpixel vColor1_Green = MGL_GET_GREEN(vColor1);
-	MGLpixel vColor1_Blue = MGL_GET_BLUE(vColor1);
-	
-	MGLpixel vColor2_Red = MGL_GET_RED(vColor2);
-	MGLpixel vColor2_Green = MGL_GET_GREEN(vColor2);
-	MGLpixel vColor2_Blue = MGL_GET_BLUE(vColor2);
-	
-	MGLpixel vColor3_Red = MGL_GET_RED(vColor3);
-	MGLpixel vColor3_Green = MGL_GET_GREEN(vColor3);
-	MGLpixel vColor3_Blue = MGL_GET_BLUE(vColor3);
-	
-	float newRed = alpha*vColor1_Red + beta*vColor2_Red + gamma*vColor3_Red;
-	float newBlue = alpha*vColor1_Blue + beta*vColor2_Blue + gamma*vColor3_Blue; 
-	float newGreen = alpha*vColor1_Green + beta*vColor2_Green + gamma*vColor3_Green; 
+	float newRed = alpha*vColor1[0] + beta*vColor2[0]+ gamma*vColor3[0];
+	float newGreen = alpha*vColor1[1] + beta*vColor2[1] + gamma*vColor3[1]; 
+	float newBlue = alpha*vColor1[2] + beta*vColor2[2] + gamma*vColor3[2]; 
 	
 	MGLpixel newColor = 0;
-	MGL_SET_RED(newColor, (int) newRed);
-	MGL_SET_GREEN(newColor, (int) newGreen);
-	MGL_SET_BLUE(newColor, (int) newBlue);
+	MGL_SET_RED(newColor, (MGLpixel) newRed);
+	MGL_SET_GREEN(newColor, (MGLpixel) newGreen);
+	MGL_SET_BLUE(newColor, (MGLpixel) newBlue);
 	
 	return newColor;	
 }
@@ -642,8 +640,8 @@ void mglReadPixels(MGLsize width,
 		int x = zBuffer[i].x;
 		int y = zBuffer[i].y;
 		
-		MGLpixel c = zBuffer[i].pcolor;
-		data[y*width + x] = c;
+		MGLpixel color = zBuffer[i].pColor;
+		data[y*width + x] = color;
 		
 	}
 
@@ -685,9 +683,13 @@ void mglBegin(MGLpoly_mode mode)
 void mglEnd()
 {
 	// add all of these vertices to a Shape
-	shapeList.push_back(vertexList);
 	
-	vertexList.clear();
+	if(!vertexList.empty())
+	{
+		shapeList.push_back(vertexList);
+	
+		vertexList.clear();
+	}
 	
 }
 
@@ -706,7 +708,20 @@ void mglVertex2(MGLfloat x,
 		exit(1);
 	}
 	
-	Vertex Vec2(x, y, 0, 1, color);
+	
+	if (mgl_ShapeMode == MGL_TRIANGLES && vertexList.size() == 3)
+	{
+		shapeList.push_back(vertexList);
+		vertexList.clear();
+	}
+	
+	if (mgl_ShapeMode == MGL_QUADS && vertexList.size() == 4)
+	{
+		shapeList.push_back(vertexList);
+		vertexList.clear();
+	}
+	
+	Vertex Vec2(x, y, 0, 1);
 	
 	// apply the transformations before you push to vertexList
 	Vec2.applyTransformations();
@@ -729,7 +744,19 @@ void mglVertex3(MGLfloat x,
 		exit(1);
 	}
 	
-	Vertex Vec3(x, y, z, 1, color);
+	if (mgl_ShapeMode == MGL_TRIANGLES && vertexList.size() == 3)
+	{
+		shapeList.push_back(vertexList);
+		vertexList.clear();
+	}
+	
+	if (mgl_ShapeMode == MGL_QUADS && vertexList.size() == 4)
+	{
+		shapeList.push_back(vertexList);
+		vertexList.clear();
+	}
+	
+	Vertex Vec3(x, y, z, 1);
 	
 	// apply the transformations before you push to vertexList
 	Vec3.applyTransformations();
@@ -1061,8 +1088,8 @@ void mglColor(MGLbyte red,
               MGLbyte green,
               MGLbyte blue)
 {
+	RGB[0] = red;
+	RGB[1] = green;
+	RGB[2] = blue;
 	
-	MGL_SET_RED(color, red);
-	MGL_SET_GREEN(color, green);
-	MGL_SET_BLUE(color, blue);
 }
