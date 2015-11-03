@@ -10,10 +10,6 @@
  * CS130: Computer Graphics
  * Fall 2015
  */
- 
- // might need to modify rasterizeTriangle and Quad for
- // different resolutions.
- // mglReadPixels is called 
 
 #include <cstdio>
 #include <cstdlib>
@@ -176,6 +172,7 @@ class Vertex
 		
 	}
 	
+	// This is the assignment operator I have overloaded.
 	Vertex& operator= (const Vertex& rhs)
 	{
 		// this is for avoiding assignment of the same object
@@ -195,7 +192,10 @@ class Vertex
 		return *this;
 	}
 	
-	// this operation performs matrix and vector multiplication
+	/* This operation performs matrix and vector multiplication.
+	 * The vector must be on the left of *, and the matrix must be on
+	 * the right.
+	 */
 	Vertex operator* (const Matrix& rhs)
 	{
 		MGLfloat currVertex[4] = {x, y, z, w};
@@ -239,20 +239,30 @@ class Vertex
 		
 	}
 	
-	// aka divide by w
-	void convert2NDC()
-	{
-		x = x/w;
-		y = y/w;
-		z = z/w;
-		w = w/w;
-	}
-	
+	/* This function converts world to screen coordinates.
+	 * It should be called when you're about to rasterize the
+	 * triangle or quadrilateral.
+	 * 
+	 * By now, I should know the screen width and height because
+	 * it has been passed through mglReadPixels. 
+	 */	
 	void scaleToScreen(MGLsize width, MGLsize height)
 	{	
 		
 		x = (x*width)/2;
 		y = (y*height)/2;
+		
+		
+		// convert to NDC, aka divide by w
+		x = x/w;
+		y = y/w;
+		z = z/w;
+		w = w/w;
+		
+		x_screen = x;
+		y_screen = y;
+		z_screen = z;
+		w_screen = w;
 		
 	}
 	
@@ -266,14 +276,13 @@ class Vertex
 	* 
 	* Each step of my multiplication returns a vector.
 	* 
-	* After that, I modify the resulting vector by scaling its x and y
-	* values according . To do so, I call scaleToScreen. 
+	* After that, I update the x, y, and z values.
 	* 
-	* x is set to x*width/2, and y is set to y*height/2 
-	* after that, I call convert2NDC which divides all vector points
-	* by w.
+	* I don't scale to the screen yet because I don't know the screen
+	* resolution until mglReadPixels (which is called at the very very
+	* end).
 	*/ 
-	void convert2ScreenCoord(MGLsize width, MGLsize height)
+	void applyTransformations()
 	{
 		
 		Matrix model = ModelMatrixStack.top();
@@ -282,11 +291,9 @@ class Vertex
 		Matrix trans;
 		trans.createTranslater(1, 1, 1);
 		
-		cout << "model:\n" << model << endl;
+		//cout << "model:\n" << model << endl;
 		
-		cout << "proj:\n" << proj << endl; 
-		
-		//cout << "scaling matrix\n" << scale << endl;
+		//cout << "proj:\n" << proj << endl; 
 		
 		// TODO: make sure the order of this is ok. Might need to mult
 		// other way around.
@@ -307,20 +314,13 @@ class Vertex
 		// to handle negatives
 		v = v * trans;
 		
-		cout << "testing v*trans\n" << v << endl;
-
-		v.scaleToScreen(width, height);
-
-		cout << "testing scale\n" << v << endl;
+		//cout << "testing v*trans\n" << v << endl;
 		
-		v.convert2NDC();
-		
-		cout << "converting to NDC\n" << v << endl;
-		
-		x_screen = v.x;
-		y_screen = v.y;
-		z_screen = v.z;
-		w_screen = v.w;
+		// update the x, y, z, w values.
+		x = v.x;
+		y = v.y;
+		z = v.z;
+		w = v.w;
 		
 	}
 		
@@ -463,7 +463,7 @@ void convert2ScreenCoord(MGLsize width, MGLsize height)
 	cout << "numVert: " << numVertices << endl;
 	
 	for (int i = 0; i < numVertices; ++i)
-		vertexList[i].convert2ScreenCoord(width, height);
+		vertexList[i].scaleToScreen(width, height);
 }
 
 // barycentric coordinate stuff
@@ -471,11 +471,6 @@ float f (float x, float y, float x_b, float y_b, float x_c, float y_c)
 {
 	return (y_b - y_c)*x + (x_c - x_b)*y + (x_b*y_c) - (x_c*y_b);
 }
-
-// a is vertexList[0];
-// b is vertexList[1];
-// c is vertexList[2];
-
 
 // determines if points are inside the triangle
 void drawTriangle(float x, float y, const Vertex& a, const Vertex &b, const Vertex &c)
@@ -514,8 +509,6 @@ void drawTriangle(float x, float y, const Vertex& a, const Vertex &b, const Vert
 
 void rasterizeTriangle(MGLsize width, MGLsize height, const Vertex& a, const Vertex &b, const Vertex &c)
 {
-	// convert vertices to screen coordinates
-	convert2ScreenCoord(width, height);
 	
 	// obtain the bounding box in screen coordinates
 	mgl_BoundingBox.initBB(width, height);
@@ -537,8 +530,6 @@ void rasterizeTriangle(MGLsize width, MGLsize height, const Vertex& a, const Ver
 
 void rasterizeQuad(MGLsize width, MGLsize height, const Vertex& a, const Vertex &b, const Vertex &c, const Vertex &d)
 {
-	// convert vertices to screen coordinates
-	convert2ScreenCoord(width, height);
 	
 	// obtain the bounding box in screen coordinates
 	mgl_BoundingBox.initBB(width, height);
@@ -590,6 +581,9 @@ void mglReadPixels(MGLsize width,
 	// set these for the other functions
 	SCREEN_WIDTH = width;
 	SCREEN_HEIGHT = height;
+	
+	// convert vertices in vertexList to screen coordinates
+	convert2ScreenCoord(width, height);
 	
 	
 	if (mgl_ShapeMode == MGL_TRIANGLES)
@@ -656,10 +650,11 @@ void mglVertex2(MGLfloat x,
 	}
 	
 	Vertex Vec2(x, y, 0, 1);
-	vertexList.push_back(Vec2);
-	//cout << "pushing vertex 2D" << endl;
 	
-	// TODO: convert to screen coords here
+	// apply the transformations before you push to vertexList
+	Vec2.applyTransformations();
+	
+	vertexList.push_back(Vec2);
 
 }
 
@@ -678,10 +673,11 @@ void mglVertex3(MGLfloat x,
 	}
 	
 	Vertex Vec3(x, y, z, 1);
+	
+	// apply the transformations before you push to vertexList
+	Vec3.applyTransformations();
+	
 	vertexList.push_back(Vec3);
-	//cout << "pushing vertex 3D" << endl;
-
-	// TODO: convert to screen coords here
 }
 
 /**
