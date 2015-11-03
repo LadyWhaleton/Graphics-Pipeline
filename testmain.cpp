@@ -209,9 +209,15 @@ void mglTranslate(MGLfloat x,
 {
 	Matrix t(x, y, z); 
 	if (mgl_MatrixMode == MGL_PROJECTION)
+	{
 		mglMultMatrix(ProjMatrixStack.top(), t); 
+		
+	}
 	else if (mgl_MatrixMode == MGL_MODELVIEW)
+	{
 		mglMultMatrix(ModelMatrixStack.top(), t);
+		cout << "Translated:\n" << ModelMatrixStackStack.top() << endl;
+	}
 	
 }
 

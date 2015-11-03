@@ -478,19 +478,19 @@ float f (float x, float y, float x_b, float y_b, float x_c, float y_c)
 
 
 // determines if points are inside the triangle
-void drawTriangle(float x, float y)
+void drawTriangle(float x, float y, const Vertex& a, const Vertex &b, const Vertex &c)
 {
 	// vertex A
-	float x_a = vertexList[0].x_screen;
-	float y_a = vertexList[0].y_screen;
+	float x_a = a.x_screen;
+	float y_a = a.y_screen;
 	
 	// vertex B
-	float x_b = vertexList[1].x_screen;
-	float y_b = vertexList[1].y_screen;
+	float x_b = b.x_screen;
+	float y_b = b.y_screen;
 	
 	// vertex C 
-	float x_c = vertexList[2].x_screen;
-	float y_c = vertexList[2].y_screen;
+	float x_c = c.x_screen;
+	float y_c = c.y_screen;
 	
 	float alpha = f(x, y, x_b, y_b, x_c, y_c) / f(x_a, y_a, x_b, y_b, x_c, y_c);
 	float beta = f(x, y, x_c, y_c, x_a, y_a) / f(x_b, y_b, x_c, y_c, x_a, y_a);
@@ -512,7 +512,7 @@ void drawTriangle(float x, float y)
 	
 }
 
-void rasterizeTriangle(MGLsize width, MGLsize height)
+void rasterizeTriangle(MGLsize width, MGLsize height, const Vertex& a, const Vertex &b, const Vertex &c)
 {
 	// convert vertices to screen coordinates
 	convert2ScreenCoord(width, height);
@@ -531,85 +531,11 @@ void rasterizeTriangle(MGLsize width, MGLsize height)
 		for (float y = y_min; y <= y_max; ++y)
 		{
 			//cout << "x: " << x << " y: " << y << endl;
-			drawTriangle(x, y);
+			drawTriangle(x, y, a, b, c);
 		}
 }
 
-// for quads
-// determines if points are inside the triangle
-void drawTriangle1(float x, float y)
-{
-	// vertex A
-	float x_a = vertexList[0].x_screen;
-	float y_a = vertexList[0].y_screen;
-	
-	// vertex B
-	float x_b = vertexList[1].x_screen;
-	float y_b = vertexList[1].y_screen;
-	
-	// vertex C 
-	float x_c = vertexList[2].x_screen;
-	float y_c = vertexList[2].y_screen;
-	
-	float alpha = f(x, y, x_b, y_b, x_c, y_c) / f(x_a, y_a, x_b, y_b, x_c, y_c);
-	float beta = f(x, y, x_c, y_c, x_a, y_a) / f(x_b, y_b, x_c, y_c, x_a, y_a);
-	float gamma = f(x, y, x_a, y_a, x_b, y_b) / f(x_c, y_c, x_a, y_a, x_b, y_b);
-	
-	// if it's inside the triangle
-	if (alpha >= 0 && beta >= 0 && gamma >= 0)
-	{
-		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
-		// MGLpixel c = alpha *color + beta*color + gamma*color;
-		
-		set_pixel( (int) x, (int) y, color);
-		
-		/*
-		int position = ((int) y) * width + ((int) x);
-		data[position] = color;
-		*/
-	}
-
-	
-	
-}
-
-void drawTriangle2(float x, float y)
-{
-	// vertex A
-	float x_a = vertexList[0].x_screen;
-	float y_a = vertexList[0].y_screen;
-	
-	// vertex B
-	float x_b = vertexList[3].x_screen;
-	float y_b = vertexList[3].y_screen;
-	
-	// vertex C 
-	float x_c = vertexList[2].x_screen;
-	float y_c = vertexList[2].y_screen;
-	
-	float alpha = f(x, y, x_b, y_b, x_c, y_c) / f(x_a, y_a, x_b, y_b, x_c, y_c);
-	float beta = f(x, y, x_c, y_c, x_a, y_a) / f(x_b, y_b, x_c, y_c, x_a, y_a);
-	float gamma = f(x, y, x_a, y_a, x_b, y_b) / f(x_c, y_c, x_a, y_a, x_b, y_b);
-	
-	// if it's inside the triangle
-	if (alpha >= 0 && beta >= 0 && gamma >= 0)
-	{
-		//cout << 'a: ' << alpha << ' b: ' << beta << ' c: ' << gamma << endl;
-		// MGLpixel c = alpha *color + beta*color + gamma*color;
-		
-		set_pixel( (int) x, (int) y, color);
-		
-		/*
-		int position = ((int) y) * width + ((int) x);
-		data[position] = color;
-		*/
-	}
-
-	
-	
-}
-
-void rasterizeQuad(MGLsize width, MGLsize height)
+void rasterizeQuad(MGLsize width, MGLsize height, const Vertex& a, const Vertex &b, const Vertex &c, const Vertex &d)
 {
 	// convert vertices to screen coordinates
 	convert2ScreenCoord(width, height);
@@ -628,8 +554,8 @@ void rasterizeQuad(MGLsize width, MGLsize height)
 		for (float y = y_min; y <= y_max; ++y)
 		{
 			//cout << "x: " << x << " y: " << y << endl;
-			drawTriangle1(x, y);
-			drawTriangle2(x, y);
+			drawTriangle(x, y, a, b, c);
+			drawTriangle(x, y, a, d, c);
 		}
 }
 
@@ -668,13 +594,13 @@ void mglReadPixels(MGLsize width,
 	
 	if (mgl_ShapeMode == MGL_TRIANGLES)
 	{
-		rasterizeTriangle(width, height);
+		rasterizeTriangle(width, height, vertexList[0], vertexList[1], vertexList[2]);
 		cout << "Done creating triangle" << endl;
 	}
 	
 	else if (mgl_ShapeMode == MGL_QUADS)
 	{
-		rasterizeQuad(width, height);
+		rasterizeQuad(width, height, vertexList[0], vertexList[1], vertexList[2], vertexList[3]);
 		cout << "Done creating rectangle" << endl;
 	}
 	
@@ -732,6 +658,8 @@ void mglVertex2(MGLfloat x,
 	Vertex Vec2(x, y, 0, 1);
 	vertexList.push_back(Vec2);
 	//cout << "pushing vertex 2D" << endl;
+	
+	// TODO: convert to screen coords here
 
 }
 
@@ -753,6 +681,7 @@ void mglVertex3(MGLfloat x,
 	vertexList.push_back(Vec3);
 	//cout << "pushing vertex 3D" << endl;
 
+	// TODO: convert to screen coords here
 }
 
 /**
@@ -904,11 +833,21 @@ void mglTranslate(MGLfloat x,
                   MGLfloat y,
                   MGLfloat z)
 {
-	Matrix t(x, y, z); 
+	
+	cout << "translating...\n";
+	
+	Matrix t;
+	t.createTranslater(x, y, z);
+	
 	if (mgl_MatrixMode == MGL_PROJECTION)
+	{
 		mglMultMatrix(ProjMatrixStack.top(), t); 
+	}
 	else if (mgl_MatrixMode == MGL_MODELVIEW)
+	{
 		mglMultMatrix(ModelMatrixStack.top(), t);
+		cout << "model translate:\n" << ModelMatrixStack.top() << endl;
+	}
 	
 }
 
