@@ -28,10 +28,11 @@ Functions:
 	
 3. mglEnd (Line 648)
 	Checks vertexList if it's empty or not. If it isn't, push the vertexList 
-	onto a shape. This means that the shape now is specified by those vertices in the vertexList. For my implementation,
-	vertexList is a vector of class Vertex. I do not have a class named
-	shape, but I use a vector < vector<Vertex> > shapeList which essentially
-	contains all of the vertices for each shape.
+	onto a shape. This means that the shape now is specified by those vertices 
+	in the vertexList. For my implementation, vertexList is a vector of class Vertex. 
+	I do not have a class named shape, but I use a 
+	vector < vector<Vertex> > shapeList which essentially contains all 
+	of the vertices for each shape.
 
 4. mglVertex2 (Line 666)
 	First, check if mgl_shapeMode is -1. If it is, print out an error
