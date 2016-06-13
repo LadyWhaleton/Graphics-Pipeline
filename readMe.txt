@@ -67,7 +67,7 @@ Functions:
 	matrix mode.
 	
 8. mglPopMatrix (Line 762)
-	This function works similiarly to mglPushMatrix except I'm
+	This function works similarly to mglPushMatrix except I'm
 	popping off the top of the stack.
 	
 9. mglLoadIdentity (Line 780)
